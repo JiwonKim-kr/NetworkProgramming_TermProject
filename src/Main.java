@@ -37,7 +37,7 @@ public class Main {
             showNicknamePrompt();
         });
     }
-
+    // push체크용
     private static void showNicknamePrompt() {
         String input = JOptionPane.showInputDialog(frame, "닉네임을 입력하세요:", "닉네임 설정", JOptionPane.PLAIN_MESSAGE);
         if (input != null && !input.trim().isEmpty()) {
