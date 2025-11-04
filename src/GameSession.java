@@ -197,7 +197,7 @@ public class GameSession {
         String p2Captured = gameLogic.getBoard().getP2Captured().stream().map(Enum::name).collect(Collectors.joining(","));
 
         String statePayload = String.format("%s|%s|%s|%s",
-                boardStr.toString(), p1Captured, p2Captured, gameLogic.getCurrentPlayer().name());
+                boardStr, p1Captured, p2Captured, gameLogic.getCurrentPlayer().name());
 
         gameRoom.broadcastSystem("UPDATE_STATE " + statePayload);
     }
@@ -212,7 +212,7 @@ public class GameSession {
                 writer.write(move + "\n");
             }
         } catch (IOException e) {
-            e.printStackTrace();
+            System.err.println("리플레이 저장 중 오류 발생: " + e.getMessage());
         }
     }
 

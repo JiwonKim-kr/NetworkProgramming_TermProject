@@ -8,7 +8,7 @@ public class GameLogic {
     private Piece.Player currentPlayer;
     private GameState gameState;
     private Piece.Player winner = null;
-    private List<String> moveHistory = new ArrayList<>();
+    private final List<String> moveHistory = new ArrayList<>();
     private GameBoard lastTurnBoardState;
 
     public enum GameState {
@@ -44,6 +44,6 @@ public class GameLogic {
     public GameBoard getBoard() { return board; }
     public Piece.Player getCurrentPlayer() { return currentPlayer; }
     public GameState getGameState() { return gameState; }
-    public Piece.Player getWinner() { return winner; }
+    // public Piece.Player getWinner() { return winner; } // wtf
     public List<String> getMoveHistory() { return moveHistory; }
 }

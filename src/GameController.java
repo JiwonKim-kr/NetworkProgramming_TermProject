@@ -36,7 +36,7 @@ public class GameController {
     public void respondUndo(boolean accepted) { client.sendMessage("UNDO_RESPONSE " + accepted); }
 
     public void onBoardClicked(int r, int c) {
-        if (!ui.isMyTurn()) return;
+        if (ui.isMyTurn()) return;
 
         if (selectedCapturedPiece != null) {
             client.sendMessage(String.format("PLACE %s %d %d", selectedCapturedPiece.name(), r, c));
@@ -60,7 +60,7 @@ public class GameController {
     }
 
     public void onCapturedPieceClicked(Piece piece, Object sourceButton) {
-        if (!ui.isMyTurn()) return;
+        if (ui.isMyTurn()) return;
         clearSelections();
         selectedCapturedPiece = piece;
         ui.highlightSelectedCapturedPiece(sourceButton);

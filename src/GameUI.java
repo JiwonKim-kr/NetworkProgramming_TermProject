@@ -163,7 +163,7 @@ public class GameUI {
     public void showError(String message) { JOptionPane.showMessageDialog(frame, message, "오류", JOptionPane.ERROR_MESSAGE); }
     public void appendChatMessage(String message) { chatArea.append(message + "\n"); }
     public void updateRoomList(String[] rooms) { roomListModel.clear(); for (String roomInfo : rooms) { roomListModel.addElement(roomInfo); } }
-    public boolean isMyTurn() { return myTurn; }
+    public boolean isMyTurn() { return !myTurn; }
     public String getPieceOwnerRole(int r, int c) { Piece piece = boardState[r][c]; if (piece == null) return null; return piece.getOwner().name(); }
     public boolean isValidMove(int r, int c) { return validMoveCells.stream().anyMatch(m -> m[0] == r && m[1] == c); }
 
