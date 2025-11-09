@@ -105,7 +105,7 @@ public class GameController {
                     ui.showNicknamePrompt();
                     break;
                 case "UPDATE_ROOMLIST":
-                    ui.updateRoomList(payload.isEmpty() ? new String[0] : payload.split(","));
+                    ui.updateRoomList(payload);
                     break;
                 case "JOIN_SUCCESS":
                     ui.enterRoom(payload);

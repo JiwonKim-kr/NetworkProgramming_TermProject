@@ -14,8 +14,8 @@ public class GameUI {
     private JPanel mainPanel;
 
     // Lobby UI
-    private JList<String> roomList;
-    private DefaultListModel<String> roomListModel;
+    private JButton[][] lobbyButtons = new JButton[4][3];
+    private String[][] lobbyRoomIds = new String[4][3];
 
     // Room UI
     private JTextArea chatArea;
@@ -48,36 +48,47 @@ public class GameUI {
     }
 
     private JPanel createLobbyPanel() {
-        JPanel panel = new JPanel(new BorderLayout(10, 10));
-        panel.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
-        panel.add(new JLabel("대기실 목록", SwingConstants.CENTER), BorderLayout.NORTH);
+	    JPanel panel = new JPanel(new BorderLayout(10, 10));
+	    panel.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
+	    panel.add(new JLabel("대기실 목록", SwingConstants.CENTER), BorderLayout.NORTH);
+	
+	    // ▼ 로비 버튼 그리드(12칸 고정)
+	    JPanel lobbyGrid = new JPanel(new GridLayout(4, 3, 8, 8));
+	    lobbyGrid.setBorder(BorderFactory.createLineBorder(Color.GRAY));
+	
+	    for (int r = 0; r < 4; r++) {
+	        for (int c = 0; c < 3; c++) {
+	            JButton b = new JButton("빈 방");
+	            b.setFocusable(false);
+	            b.setEnabled(false);
+	            b.addActionListener(e -> {
+	                JButton src = (JButton) e.getSource();
+	                String title = (String) src.getClientProperty("roomTitle");
+	                if (title != null && !title.isBlank()) {
+	                    src.setEnabled(false);                    // 중복 클릭 방지(선택)
+	                    try { controller.joinRoom(title); }
+	                    finally { src.setEnabled(true); }         // 실패 시 복구
+	                }
+	            });
+	            lobbyButtons[r][c] = b;
+	            lobbyGrid.add(b);
+	        }
+	    }
+	    panel.add(new JScrollPane(lobbyGrid), BorderLayout.CENTER);
+	    // ▲ “항상 존재”하므로 여기서 12개를 고정 생성
+	
+	    JButton createRoomButton = new JButton("방 만들기");
+	    createRoomButton.addActionListener(e -> {
+	        String roomTitle = JOptionPane.showInputDialog(frame, "방 제목을 입력하세요:");
+	        if (roomTitle != null && !roomTitle.trim().isEmpty()) {
+	            controller.createRoom(roomTitle);
+	        }
+	    });
+	    panel.add(createRoomButton, BorderLayout.SOUTH);
+	
+	    return panel;
+	}
 
-        roomListModel = new DefaultListModel<>();
-        roomList = new JList<>(roomListModel);
-        roomList.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
-        roomList.addMouseListener(new MouseAdapter() {
-            public void mouseClicked(MouseEvent evt) {
-                if (evt.getClickCount() == 2) {
-                    String selectedRoom = roomList.getSelectedValue();
-                    if (selectedRoom != null) {
-                        controller.joinRoom(selectedRoom.split(" ")[0]);
-                    }
-                }
-            }
-        });
-        panel.add(new JScrollPane(roomList), BorderLayout.CENTER);
-
-        JButton createRoomButton = new JButton("방 만들기");
-        createRoomButton.addActionListener(e -> {
-            String roomTitle = JOptionPane.showInputDialog(frame, "방 제목을 입력하세요:");
-            if (roomTitle != null && !roomTitle.trim().isEmpty()) {
-                controller.createRoom(roomTitle);
-            }
-        });
-        panel.add(createRoomButton, BorderLayout.SOUTH);
-
-        return panel;
-    }
 
     private JPanel createRoomPanel() {
         JPanel panel = new JPanel(new BorderLayout(10, 10));
@@ -119,7 +130,7 @@ public class GameUI {
         p1CapturedPanel.setBorder(BorderFactory.createTitledBorder("내가 잡은 말"));
         p1CapturedPanel.setPreferredSize(new Dimension(0, 60));
         panel.add(p1CapturedPanel, BorderLayout.SOUTH);
-
+        
         JPanel boardPanel = new JPanel(new GridLayout(4, 3, 5, 5));
         boardPanel.setBorder(BorderFactory.createLineBorder(Color.BLACK));
         for (int r = 0; r < 4; r++) {
@@ -134,7 +145,8 @@ public class GameUI {
             }
         }
         panel.add(boardPanel, BorderLayout.CENTER);
-
+        
+        
         JPanel chatPanel = new JPanel(new BorderLayout());
         chatPanel.setPreferredSize(new Dimension(250, 0));
         chatArea = new JTextArea();
@@ -162,14 +174,31 @@ public class GameUI {
     public void enterRoom(String roomTitle) { cardLayout.show(mainPanel, "ROOM"); frame.setTitle("십이장기 - " + roomTitle); resetRoomUI(); }
     public void showError(String message) { JOptionPane.showMessageDialog(frame, message, "오류", JOptionPane.ERROR_MESSAGE); }
     public void appendChatMessage(String message) { chatArea.append(message + "\n"); }
-    public void updateRoomList(String[] rooms) { roomListModel.clear(); for (String roomInfo : rooms) { roomListModel.addElement(roomInfo); } }
     public boolean isMyTurn() { return !myTurn; }
     public String getPieceOwnerRole(int r, int c) { Piece piece = boardState[r][c]; if (piece == null) return null; return piece.getOwner().name(); }
     public boolean isValidMove(int r, int c) { return validMoveCells.stream().anyMatch(m -> m[0] == r && m[1] == c); }
 
     public void updatePlayerStatus(String[] readyInfo) { String playerRole = readyInfo[0]; boolean isReady = Boolean.parseBoolean(readyInfo[1]); if (playerRole.equals("HOST")) { hostStatusLabel.setText("HOST: " + (isReady ? "READY" : "NOT READY")); } else { guestStatusLabel.setText("GUEST: " + (isReady ? "READY" : "NOT READY")); } }
     public void handleGameStart() { chatArea.append("SYSTEM: 게임이 시작되었습니다!\n"); hostStatusLabel.setText("HOST: PLAYING"); guestStatusLabel.setText("GUEST: PLAYING"); }
-
+    public void updateRoomList(String payload) {
+        SwingUtilities.invokeLater(() -> {
+            String[] items = (payload == null || payload.isBlank()) ? new String[0]
+                              : payload.split("\\s*,\\s*");
+            int n = Math.min(items.length, 12);
+            for (int i = 0; i < 12; i++) {
+                JButton b = lobbyButtons[i / 3][i % 3];
+                if (i < n) {
+                    String item = items[i];
+                    String title = item.replaceFirst("\\s*\\(.*$", "").trim();
+                    b.setText(item); b.setEnabled(true); b.setToolTipText("입장: " + title);
+                    b.putClientProperty("roomTitle", title);
+                } else {
+                    b.setText("빈 방"); b.setEnabled(false); b.setToolTipText(null);
+                    b.putClientProperty("roomTitle", null);
+                }
+            }
+        });
+    }
     public void updateGameState(String payload) {
         String[] stateParts = payload.split("\\|", 4);
         updateBoard(stateParts[0]);
