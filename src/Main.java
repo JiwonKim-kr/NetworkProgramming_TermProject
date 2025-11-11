@@ -1,10 +1,39 @@
+import javax.swing.*;
+import javax.swing.border.LineBorder;
+import java.awt.*;
+import java.awt.event.MouseAdapter;
+import java.awt.event.MouseEvent;
+import java.util.ArrayList;
+import java.util.List;
+
 public class Main {
+
+    private static GameClient client;
+    private static String nickname;
+    private static JFrame frame;
+    private static CardLayout cardLayout;
+    private static JPanel mainPanel;
+
+    // Lobby UI
+    private static JList<String> roomList;
+    private static DefaultListModel<String> roomListModel;
+
+    // Room UI
+    private static JTextArea chatArea;
+    private static JTextField chatField;
+    private static final JButton[][] boardButtons = new JButton[4][3];
+    private static final Piece[][] boardState = new Piece[4][3];
+    private static JLabel hostStatusLabel, guestStatusLabel, turnLabel;
+    private static JPanel p1CapturedPanel, p2CapturedPanel;
+    private static int selectedRow = -1, selectedCol = -1;
+    private static Piece selectedCapturedPiece = null;
+    private static final List<int[]> validMoveCells = new ArrayList<>();
+    private static boolean myTurn = false;
+
     public static void main(String[] args) {
-        GameController controller = new GameController();
-        controller.start();
         SwingUtilities.invokeLater(() -> {
             createAndShowGUI();
-            client = new Client(Main::handleServerMessage);
+            client = new GameClient(Main::handleServerMessage);
             showNicknamePrompt();
         });
     }
