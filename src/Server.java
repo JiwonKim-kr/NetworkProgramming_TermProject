@@ -62,6 +62,7 @@ public class Server {
 
     public static synchronized void addNickname(String nickname) {
         nicknames.add(nickname);
+        broadcastRoomList();
     }
 
     public static void createGameRoom(String title, ClientHandler host) {

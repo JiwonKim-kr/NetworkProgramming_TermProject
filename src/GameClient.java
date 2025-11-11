@@ -5,7 +5,7 @@ import java.io.PrintWriter;
 import java.net.Socket;
 import java.util.function.Consumer;
 
-public class Client {
+public class GameClient {
 
     private static final String SERVER_ADDRESS = "localhost";
     private static final int SERVER_PORT = 12345;
@@ -14,9 +14,9 @@ public class Client {
     private PrintWriter out;
     private String nickname;
     private volatile String playerRole; // "P1" or "P2"
-    private Consumer<String> onMessageReceived;
+    private final Consumer<String> onMessageReceived;
 
-    public Client(Consumer<String> onMessageReceived) {
+    public GameClient(Consumer<String> onMessageReceived) {
         this.onMessageReceived = onMessageReceived;
     }
 
@@ -30,7 +30,7 @@ public class Client {
             new Thread(this::handleServerConnection).start();
 
         } catch (IOException e) {
-            onMessageReceived.accept("ERROR 서버에 연결할 수 없습니다.");
+            onMessageReceived.accept("ERROR: 서버에 연결할 수 없습니다.");
         }
     }
 
@@ -50,7 +50,7 @@ public class Client {
                 }
             }
         } catch (IOException e) {
-            onMessageReceived.accept("ERROR 서버와 연결이 끊어졌습니다.");
+            onMessageReceived.accept("ERROR: 서버와 연결이 끊어졌습니다.");
         } finally {
             closeConnection();
         }
@@ -74,5 +74,9 @@ public class Client {
 
     public String getPlayerRole() {
         return playerRole;
+    }
+    
+    public String getNickname() {
+        return nickname;
     }
 }

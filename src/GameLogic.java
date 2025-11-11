@@ -8,7 +8,7 @@ public class GameLogic {
     private Piece.Player currentPlayer;
     private GameState gameState;
     private Piece.Player winner = null;
-    private List<String> moveHistory = new ArrayList<>();
+    private final List<String> moveHistory = new ArrayList<>();
     private GameBoard lastTurnBoardState;
 
     public enum GameState {
@@ -35,8 +35,7 @@ public class GameLogic {
         }
         return false;
     }
-    
-    // ... (나머지 코드는 이전과 동일)
+
     public void startGame() { board.setupInitialBoard(); currentPlayer = new Random().nextBoolean() ? Piece.Player.P1 : Piece.Player.P2; gameState = GameState.IN_PROGRESS; winner = null; moveHistory.clear(); }
     public boolean handleMove(Piece.Player player, int fromR, int fromC, int toR, int toC) { if (player != currentPlayer || gameState != GameState.IN_PROGRESS) return false; this.lastTurnBoardState = this.board.clone(); Piece movingPiece = board.getPieceAt(fromR, fromC); if (movingPiece == null || movingPiece.getOwner() != player) return false; if (board.movePiece(fromR, fromC, toR, toC)) { moveHistory.add(String.format("MOVE %s %d,%d %d,%d", player.name(), fromR, fromC, toR, toC)); if (checkGameOver()) { gameState = GameState.GAME_OVER; this.winner = player; } else { switchTurn(); } return true; } return false; }
     private boolean checkGameOver() { boolean p1KingExists = board.findPiece(Piece.P1_KING) != null; boolean p2KingExists = board.findPiece(Piece.P2_KING) != null; return !p1KingExists || !p2KingExists; }
@@ -45,6 +44,6 @@ public class GameLogic {
     public GameBoard getBoard() { return board; }
     public Piece.Player getCurrentPlayer() { return currentPlayer; }
     public GameState getGameState() { return gameState; }
-    public Piece.Player getWinner() { return winner; }
+    // public Piece.Player getWinner() { return winner; } // wtf
     public List<String> getMoveHistory() { return moveHistory; }
 }

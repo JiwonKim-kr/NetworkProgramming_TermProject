@@ -8,7 +8,7 @@ import java.util.List;
 
 public class Main {
 
-    private static Client client;
+    private static GameClient client;
     private static String nickname;
     private static JFrame frame;
     private static CardLayout cardLayout;
@@ -33,7 +33,7 @@ public class Main {
     public static void main(String[] args) {
         SwingUtilities.invokeLater(() -> {
             createAndShowGUI();
-            client = new Client(Main::handleServerMessage);
+            client = new GameClient(Main::handleServerMessage);
             showNicknamePrompt();
         });
     }
