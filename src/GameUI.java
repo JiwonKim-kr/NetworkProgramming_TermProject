@@ -15,8 +15,9 @@ public class GameUI {
 
     // Lobby UI
     private JButton[][] lobbyButtons = new JButton[4][3];
-    private String[][] lobbyRoomIds = new String[4][3];
+   
 
+    
     // Room UI
     private JTextArea chatArea;
     private JTextField chatField;
@@ -46,7 +47,7 @@ public class GameUI {
         frame.setLocationRelativeTo(null);
         frame.setVisible(true);
     }
-
+    
     private JPanel createLobbyPanel() {
 	    JPanel panel = new JPanel(new BorderLayout(10, 10));
 	    panel.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
