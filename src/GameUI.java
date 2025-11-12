@@ -46,7 +46,7 @@ public class GameUI {
         frame.setLocationRelativeTo(null);
         frame.setVisible(true);
     }
-
+    //커밋용
     private JPanel createLobbyPanel() {
 	    JPanel panel = new JPanel(new BorderLayout(10, 10));
 	    panel.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
