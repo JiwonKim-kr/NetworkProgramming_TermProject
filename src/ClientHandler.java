@@ -47,12 +47,12 @@ public class ClientHandler extends Thread {
             if (!Server.isNicknameTaken(requestedNickname)) {
                 this.nickname = requestedNickname;
                 Server.addNickname(this.nickname);
-                out.println("NICKNAME_OK");
-                Server.broadcastToLobby("SYSTEM " + nickname + "님이 로비에 입장했습니다.");
+                sendMessage(Protocol.NICKNAME_OK);
+                Server.broadcastToLobby(Protocol.SYSTEM + " " + nickname + "님이 로비에 입장했습니다.");
                 sendRoomList();
                 return true;
             } else {
-                out.println("NICKNAME_TAKEN");
+                sendMessage(Protocol.NICKNAME_TAKEN);
             }
         }
     }
@@ -64,25 +64,25 @@ public class ClientHandler extends Thread {
 
         if (currentRoom == null) { // In Lobby
             switch (command) {
-                case "CREATE_ROOM":
+                case Protocol.CREATE_ROOM:
                     Server.createGameRoom(payload, this);
                     break;
-                case "JOIN_ROOM":
+                case Protocol.JOIN_ROOM:
                     Server.joinGameRoom(payload, this);
                     break;
-                case "CHAT":
-                    Server.broadcastToLobby("CHAT [로비] " + nickname + ": " + payload);
+                case Protocol.CHAT:
+                    Server.broadcastToLobby(Protocol.CHAT + " [로비] " + nickname + ": " + payload);
                     break;
             }
         } else { // In Room
             switch (command) {
-                case "CHAT":
-                    currentRoom.broadcastChat("CHAT [" + currentRoom.getTitle() + "] " + nickname + ": " + payload);
+                case Protocol.CHAT:
+                    currentRoom.broadcastChat(Protocol.CHAT + " [" + currentRoom.getTitle() + "] " + nickname + ": " + payload);
                     break;
-                case "LEAVE_ROOM":
+                case Protocol.LEAVE_ROOM:
                     currentRoom.removePlayer(this);
                     this.currentRoom = null;
-                    sendMessage("GOTO_LOBBY");
+                    sendMessage(Protocol.GOTO_LOBBY);
                     sendRoomList();
                     break;
                 default: // Game commands (READY, MOVE, PLACE, UNDO_REQUEST, etc.)
@@ -97,7 +97,7 @@ public class ClientHandler extends Thread {
             .map(room -> String.format("%s (%d/8) %s",
                 room.getTitle(), room.getPlayerCount(), room.isGameInProgress() ? "[게임중]" : "[대기중]"))
             .collect(Collectors.joining(","));
-        sendMessage("UPDATE_ROOMLIST " + roomListStr);
+        sendMessage(Protocol.UPDATE_ROOMLIST + " " + roomListStr);
     }
 
     private void cleanup() {

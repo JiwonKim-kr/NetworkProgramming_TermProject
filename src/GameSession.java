@@ -27,34 +27,44 @@ public class GameSession {
     }
 
     public synchronized void processCommand(ClientHandler player, String message) {
+        // 수정: split(" ", 2)에서 숫자 2를 제거하여 모든 인자를 파싱하도록 변경
         String[] parts = message.split(" ");
         String command = parts[0];
 
+        // --- 1. 턴에 독립적인 명령어 우선 처리 ---
+        switch (command) {
+            case "READY":
+                if (gameLogic.getGameState() != GameLogic.GameState.IN_PROGRESS) {
+                    handleReadyCommand(player);
+                }
+                return;
+            case "UNDO_REQUEST":
+                handleUndoRequest(player);
+                return;
+            case "UNDO_RESPONSE":
+                handleUndoResponse(player, parts);
+                return;
+        }
+
+        // --- 2. 게임 진행 중이 아닐 경우, 아래 명령어들은 처리하지 않음 ---
         if (gameLogic.getGameState() != GameLogic.GameState.IN_PROGRESS) {
-            if (command.equals("READY")) {
-                handleReadyCommand(player);
-            }
             return;
         }
 
+        // --- 3. 턴에 종속적인 명령어 처리 전, 턴 소유권 검사 ---
         Piece.Player playerRole = getPlayerRole(player);
         if (playerRole == null || playerRole != gameLogic.getCurrentPlayer()) {
             player.sendMessage("ERROR: 지금은 당신의 턴이 아닙니다.");
             return;
         }
 
+        // --- 4. 턴에 종속적인 명령어 처리 ---
         switch (command) {
             case "MOVE":
                 handleMoveCommand(player, parts);
                 break;
             case "PLACE":
                 handlePlaceCommand(player, playerRole, parts);
-                break;
-            case "UNDO_REQUEST":
-                handleUndoRequest(player);
-                break;
-            case "UNDO_RESPONSE":
-                handleUndoResponse(parts);
                 break;
             case "GET_VALID_MOVES":
                 handleGetValidMoves(player, parts);
@@ -87,32 +97,34 @@ public class GameSession {
     }
 
     private void handleMoveCommand(ClientHandler player, String[] parts) {
-        int fromR = Integer.parseInt(parts[1]);
-        int fromC = Integer.parseInt(parts[2]);
-        int toR = Integer.parseInt(parts[3]);
-        int toC = Integer.parseInt(parts[4]);
+        try {
+            int fromR = Integer.parseInt(parts[1]);
+            int fromC = Integer.parseInt(parts[2]);
+            int toR = Integer.parseInt(parts[3]);
+            int toC = Integer.parseInt(parts[4]);
 
-        if (gameLogic.handleMove(getPlayerRole(player), fromR, fromC, toR, toC)) {
-            if (gameLogic.getGameState() == GameLogic.GameState.GAME_OVER) {
-                endGame(player, player.getNickname() + "님이 상대 왕을 잡아 승리했습니다!");
+            if (gameLogic.handleMove(getPlayerRole(player), fromR, fromC, toR, toC)) {
+                if (gameLogic.getGameState() == GameLogic.GameState.GAME_OVER) {
+                    endGame(player, player.getNickname() + "님이 상대 왕을 잡아 승리했습니다!");
+                } else {
+                    checkKingInOpponentZone();
+                    broadcastState();
+                }
             } else {
-                checkKingInOpponentZone();
-                broadcastState();
+                player.sendMessage("ERROR: 유효하지 않은 움직임입니다.");
             }
-        } else {
-            player.sendMessage("ERROR: 유효하지 않은 움직임입니다.");
+        } catch (Exception e) {
+            player.sendMessage("ERROR: 잘못된 이동 명령입니다.");
         }
     }
 
     private void handlePlaceCommand(ClientHandler player, Piece.Player playerRole, String[] parts) {
         try {
-            // 클라이언트가 보낸 말 이름은 이미 "내 소유의 말" (예: P1_PAWN)
             Piece pieceToPlace = Piece.valueOf(parts[1]);
             
             int placeR = Integer.parseInt(parts[2]);
             int placeC = Integer.parseInt(parts[3]);
 
-            // 서버에서 해당 말이 플레이어의 포로 목록에 있는지 직접 확인
             List<Piece> capturedList = (playerRole == Piece.Player.P1) ? gameLogic.getBoard().getP1Captured() : gameLogic.getBoard().getP2Captured();
             if (capturedList.contains(pieceToPlace)) {
                 if (gameLogic.handlePlace(playerRole, pieceToPlace, placeR, placeC)) {
@@ -129,6 +141,12 @@ public class GameSession {
     }
 
     private void handleUndoRequest(ClientHandler player) {
+        if (gameLogic.getGameState() != GameLogic.GameState.IN_PROGRESS) return;
+
+        if (getPlayerRole(player) == gameLogic.getCurrentPlayer()) {
+            player.sendMessage("ERROR: 상대방의 턴에만 수 무르기를 요청할 수 있습니다.");
+            return;
+        }
         ClientHandler opponent = (player == player1) ? player2 : player1;
         if (opponent != null) {
             opponent.sendMessage("UNDO_REQUESTED " + player.getNickname());
@@ -136,7 +154,14 @@ public class GameSession {
         }
     }
 
-    private void handleUndoResponse(String[] parts) {
+    private void handleUndoResponse(ClientHandler player, String[] parts) {
+        if (gameLogic.getGameState() != GameLogic.GameState.IN_PROGRESS) return;
+        
+        if (getPlayerRole(player) != gameLogic.getCurrentPlayer()) {
+             player.sendMessage("ERROR: 수 무르기 요청에 응답할 수 없습니다.");
+            return;
+        }
+
         if (undoRequester != null) {
             boolean accepted = Boolean.parseBoolean(parts[1]);
             if (accepted) {
@@ -151,13 +176,17 @@ public class GameSession {
     }
 
     private void handleGetValidMoves(ClientHandler player, String[] parts) {
-        int r = Integer.parseInt(parts[1]);
-        int c = Integer.parseInt(parts[2]);
-        List<int[]> moves = gameLogic.getBoard().getValidMoves(r, c);
-        String movesStr = moves.stream()
-                               .map(move -> move[0] + "," + move[1])
-                               .collect(Collectors.joining(";"));
-        player.sendMessage("VALID_MOVES " + movesStr);
+        try {
+            int r = Integer.parseInt(parts[1]);
+            int c = Integer.parseInt(parts[2]);
+            List<int[]> moves = gameLogic.getBoard().getValidMoves(r, c);
+            String movesStr = moves.stream()
+                                   .map(move -> move[0] + "," + move[1])
+                                   .collect(Collectors.joining(";"));
+            player.sendMessage("VALID_MOVES " + movesStr);
+        } catch (Exception e) {
+            player.sendMessage("ERROR: 잘못된 좌표입니다.");
+        }
     }
 
     private void checkKingInOpponentZone() {
@@ -197,7 +226,7 @@ public class GameSession {
         String p2Captured = gameLogic.getBoard().getP2Captured().stream().map(Enum::name).collect(Collectors.joining(","));
 
         String statePayload = String.format("%s|%s|%s|%s",
-                boardStr, p1Captured, p2Captured, gameLogic.getCurrentPlayer().name());
+                boardStr.toString(), p1Captured, p2Captured, gameLogic.getCurrentPlayer().name());
 
         gameRoom.broadcastSystem("UPDATE_STATE " + statePayload);
     }
@@ -212,7 +241,7 @@ public class GameSession {
                 writer.write(move + "\n");
             }
         } catch (IOException e) {
-            System.err.println("리플레이 저장 중 오류 발생: " + e.getMessage());
+            e.printStackTrace();
         }
     }
 
