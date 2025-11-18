@@ -36,7 +36,7 @@ public class GameLogic {
         return false;
     }
 
-    public void startGame() { board.setupInitialBoard(); currentPlayer = new Random().nextBoolean() ? Piece.Player.P1 : Piece.Player.P2; gameState = GameState.IN_PROGRESS; winner = null; moveHistory.clear(); }
+    public void startGame() { board.setupInitialBoard(); currentPlayer = Piece.Player.P1; gameState = GameState.IN_PROGRESS; winner = null; moveHistory.clear(); }
     public boolean handleMove(Piece.Player player, int fromR, int fromC, int toR, int toC) { if (player != currentPlayer || gameState != GameState.IN_PROGRESS) return false; this.lastTurnBoardState = this.board.clone(); Piece movingPiece = board.getPieceAt(fromR, fromC); if (movingPiece == null || movingPiece.getOwner() != player) return false; if (board.movePiece(fromR, fromC, toR, toC)) { moveHistory.add(String.format("MOVE %s %d,%d %d,%d", player.name(), fromR, fromC, toR, toC)); if (checkGameOver()) { gameState = GameState.GAME_OVER; this.winner = player; } else { switchTurn(); } return true; } return false; }
     private boolean checkGameOver() { boolean p1KingExists = board.findPiece(Piece.P1_KING) != null; boolean p2KingExists = board.findPiece(Piece.P2_KING) != null; return !p1KingExists || !p2KingExists; }
     public void undoLastMove() { if (lastTurnBoardState != null) { this.board = lastTurnBoardState; if (!moveHistory.isEmpty()) { moveHistory.remove(moveHistory.size() - 1); } switchTurn(); } }

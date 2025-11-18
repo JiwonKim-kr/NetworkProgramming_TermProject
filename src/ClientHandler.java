@@ -71,7 +71,7 @@ public class ClientHandler extends Thread {
                     Server.joinGameRoom(payload, this);
                     break;
                 case "CHAT":
-                    Server.broadcastToLobby("CHAT [로비] " + nickname + ": " + payload);
+                    Server.broadcastToLobby(nickname + ": " + payload);
                     break;
             }
         } else { // In Room
