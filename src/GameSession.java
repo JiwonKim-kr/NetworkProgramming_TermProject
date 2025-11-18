@@ -27,42 +27,47 @@ public class GameSession {
     }
 
     public synchronized void processCommand(ClientHandler player, String message) {
-        String[] parts = message.split(" ", 2);
+        // 수정: split(" ", 2)에서 숫자 2를 제거하여 모든 인자를 파싱하도록 변경
+        String[] parts = message.split(" ");
         String command = parts[0];
-        String payload = parts.length > 1 ? parts[1] : "";
 
-        // 게임 중이 아닐 때 처리할 수 있는 명령어
+        // --- 1. 턴에 독립적인 명령어 우선 처리 ---
+        switch (command) {
+            case "READY":
+                if (gameLogic.getGameState() != GameLogic.GameState.IN_PROGRESS) {
+                    handleReadyCommand(player);
+                }
+                return;
+            case "UNDO_REQUEST":
+                handleUndoRequest(player);
+                return;
+            case "UNDO_RESPONSE":
+                handleUndoResponse(player, parts);
+                return;
+        }
+
+        // --- 2. 게임 진행 중이 아닐 경우, 아래 명령어들은 처리하지 않음 ---
         if (gameLogic.getGameState() != GameLogic.GameState.IN_PROGRESS) {
-            if (command.equals(Protocol.READY)) {
-                handleReadyCommand(player);
-            }
             return;
         }
 
-        // --- 이하 게임 진행 중 명령어 ---
-
-        // 현재 턴의 플레이어가 보낸 명령인지 확인
+        // --- 3. 턴에 종속적인 명령어 처리 전, 턴 소유권 검사 ---
         Piece.Player playerRole = getPlayerRole(player);
         if (playerRole == null || playerRole != gameLogic.getCurrentPlayer()) {
-            player.sendMessage(Protocol.ERROR + " 지금은 당신의 턴이 아닙니다.");
+            player.sendMessage("ERROR: 지금은 당신의 턴이 아닙니다.");
             return;
         }
 
+        // --- 4. 턴에 종속적인 명령어 처리 ---
         switch (command) {
-            case Protocol.MOVE:
-                handleMoveCommand(player, payload.split(" "));
+            case "MOVE":
+                handleMoveCommand(player, parts);
                 break;
-            case Protocol.PLACE:
-                handlePlaceCommand(player, playerRole, payload.split(" "));
+            case "PLACE":
+                handlePlaceCommand(player, playerRole, parts);
                 break;
-            case Protocol.UNDO_REQUEST:
-                handleUndoRequest(player);
-                break;
-            case Protocol.UNDO_RESPONSE:
-                handleUndoResponse(payload);
-                break;
-            case Protocol.GET_VALID_MOVES:
-                handleGetValidMoves(player, payload.split(" "));
+            case "GET_VALID_MOVES":
+                handleGetValidMoves(player, parts);
                 break;
         }
     }
@@ -71,7 +76,7 @@ public class GameSession {
         if (player == host) hostReady = !hostReady;
         else if (player == guest) guestReady = !guestReady;
 
-        gameRoom.broadcastSystem(Protocol.PLAYER_READY + " " + (player == host ? Protocol.HOST : Protocol.GUEST) + " " + (player == host ? hostReady : guestReady));
+        gameRoom.broadcastSystem("PLAYER_READY " + (player == host ? "HOST" : "GUEST") + " " + (player == host ? hostReady : guestReady));
         
         if (host != null && guest != null && hostReady && guestReady) {
             startGame();
@@ -79,30 +84,24 @@ public class GameSession {
     }
 
     private void startGame() {
-        // P1, P2 랜덤 배정
-        if (new Random().nextBoolean()) { 
-            player1 = host; 
-            player2 = guest; 
-        } else { 
-            player1 = guest; 
-            player2 = host; 
-        }
+        if (new Random().nextBoolean()) { player1 = host; player2 = guest; } 
+        else { player1 = guest; player2 = host; }
         
-        player1.sendMessage(Protocol.ASSIGN_ROLE + " " + Protocol.P1);
-        player2.sendMessage(Protocol.ASSIGN_ROLE + " " + Protocol.P2);
+        player1.sendMessage("ASSIGN_ROLE P1");
+        player2.sendMessage("ASSIGN_ROLE P2");
 
         gameLogic.startGame();
-        gameRoom.broadcastSystem(Protocol.GAME_START);
+        gameRoom.broadcastSystem("GAME_START");
         broadcastState();
         Server.broadcastRoomList();
     }
 
     private void handleMoveCommand(ClientHandler player, String[] parts) {
         try {
-            int fromR = Integer.parseInt(parts[0]);
-            int fromC = Integer.parseInt(parts[1]);
-            int toR = Integer.parseInt(parts[2]);
-            int toC = Integer.parseInt(parts[3]);
+            int fromR = Integer.parseInt(parts[1]);
+            int fromC = Integer.parseInt(parts[2]);
+            int toR = Integer.parseInt(parts[3]);
+            int toC = Integer.parseInt(parts[4]);
 
             if (gameLogic.handleMove(getPlayerRole(player), fromR, fromC, toR, toC)) {
                 if (gameLogic.getGameState() == GameLogic.GameState.GAME_OVER) {
@@ -112,53 +111,65 @@ public class GameSession {
                     broadcastState();
                 }
             } else {
-                player.sendMessage(Protocol.ERROR + " 유효하지 않은 움직임입니다.");
+                player.sendMessage("ERROR: 유효하지 않은 움직임입니다.");
             }
-        } catch (NumberFormatException | ArrayIndexOutOfBoundsException e) {
-            player.sendMessage(Protocol.ERROR + " 잘못된 이동 명령입니다.");
+        } catch (Exception e) {
+            player.sendMessage("ERROR: 잘못된 이동 명령입니다.");
         }
     }
 
     private void handlePlaceCommand(ClientHandler player, Piece.Player playerRole, String[] parts) {
         try {
-            // 클라이언트는 자신이 보유한 말(예: P1_PAWN)의 이름을 그대로 보내므로, 서버는 소유자를 바꿀 필요가 없음.
-            Piece pieceToPlace = Piece.valueOf(parts[0]);
-            int placeR = Integer.parseInt(parts[1]);
-            int placeC = Integer.parseInt(parts[2]);
+            Piece pieceToPlace = Piece.valueOf(parts[1]);
+            
+            int placeR = Integer.parseInt(parts[2]);
+            int placeC = Integer.parseInt(parts[3]);
 
-            // 서버에서 해당 말이 플레이어의 포로 목록에 있는지 다시 한번 확인 (Validation)
             List<Piece> capturedList = (playerRole == Piece.Player.P1) ? gameLogic.getBoard().getP1Captured() : gameLogic.getBoard().getP2Captured();
             if (capturedList.contains(pieceToPlace)) {
                 if (gameLogic.handlePlace(playerRole, pieceToPlace, placeR, placeC)) {
                     broadcastState();
                 } else {
-                    player.sendMessage(Protocol.ERROR + " 해당 위치에 말을 놓을 수 없습니다.");
+                    player.sendMessage("ERROR: 해당 위치에 말을 놓을 수 없습니다.");
                 }
             } else {
-                player.sendMessage(Protocol.ERROR + " 가지고 있지 않은 말입니다.");
+                player.sendMessage("ERROR: 가지고 있지 않은 말입니다.");
             }
-        } catch (IllegalArgumentException | ArrayIndexOutOfBoundsException e) {
-            player.sendMessage(Protocol.ERROR + " 잘못된 놓기 명령입니다.");
+        } catch (Exception e) {
+            player.sendMessage("ERROR: 잘못된 명령입니다.");
         }
     }
 
     private void handleUndoRequest(ClientHandler player) {
+        if (gameLogic.getGameState() != GameLogic.GameState.IN_PROGRESS) return;
+
+        if (getPlayerRole(player) == gameLogic.getCurrentPlayer()) {
+            player.sendMessage("ERROR: 상대방의 턴에만 수 무르기를 요청할 수 있습니다.");
+            return;
+        }
         ClientHandler opponent = (player == player1) ? player2 : player1;
         if (opponent != null) {
-            opponent.sendMessage(Protocol.UNDO_REQUESTED + " " + player.getNickname());
+            opponent.sendMessage("UNDO_REQUESTED " + player.getNickname());
             undoRequester = player;
         }
     }
 
-    private void handleUndoResponse(String payload) {
+    private void handleUndoResponse(ClientHandler player, String[] parts) {
+        if (gameLogic.getGameState() != GameLogic.GameState.IN_PROGRESS) return;
+        
+        if (getPlayerRole(player) != gameLogic.getCurrentPlayer()) {
+             player.sendMessage("ERROR: 수 무르기 요청에 응답할 수 없습니다.");
+            return;
+        }
+
         if (undoRequester != null) {
-            boolean accepted = Boolean.parseBoolean(payload);
+            boolean accepted = Boolean.parseBoolean(parts[1]);
             if (accepted) {
                 gameLogic.undoLastMove();
-                gameRoom.broadcastSystem(Protocol.SYSTEM + " 수 무르기가 수락되었습니다.");
+                gameRoom.broadcastSystem("SYSTEM: 수 무르기가 수락되었습니다.");
                 broadcastState();
             } else {
-                undoRequester.sendMessage(Protocol.SYSTEM + " 상대방이 수 무르기를 거절했습니다.");
+                undoRequester.sendMessage("SYSTEM: 상대방이 수 무르기를 거절했습니다.");
             }
             undoRequester = null;
         }
@@ -166,15 +177,15 @@ public class GameSession {
 
     private void handleGetValidMoves(ClientHandler player, String[] parts) {
         try {
-            int r = Integer.parseInt(parts[0]);
-            int c = Integer.parseInt(parts[1]);
+            int r = Integer.parseInt(parts[1]);
+            int c = Integer.parseInt(parts[2]);
             List<int[]> moves = gameLogic.getBoard().getValidMoves(r, c);
             String movesStr = moves.stream()
                                    .map(move -> move[0] + "," + move[1])
                                    .collect(Collectors.joining(";"));
-            player.sendMessage(Protocol.VALID_MOVES + " " + movesStr);
-        } catch (NumberFormatException | ArrayIndexOutOfBoundsException e) {
-            player.sendMessage(Protocol.ERROR + " 잘못된 좌표입니다.");
+            player.sendMessage("VALID_MOVES " + movesStr);
+        } catch (Exception e) {
+            player.sendMessage("ERROR: 잘못된 좌표입니다.");
         }
     }
 
@@ -194,7 +205,7 @@ public class GameSession {
     }
 
     public void endGame(ClientHandler winner, String reason) {
-        gameRoom.broadcastSystem(Protocol.GAME_OVER + " " + reason);
+        gameRoom.broadcastSystem("GAME_OVER " + reason);
         saveReplay();
         gameRoom.onSessionFinished(winner);
     }
@@ -215,9 +226,9 @@ public class GameSession {
         String p2Captured = gameLogic.getBoard().getP2Captured().stream().map(Enum::name).collect(Collectors.joining(","));
 
         String statePayload = String.format("%s|%s|%s|%s",
-                boardStr, p1Captured, p2Captured, gameLogic.getCurrentPlayer().name());
+                boardStr.toString(), p1Captured, p2Captured, gameLogic.getCurrentPlayer().name());
 
-        gameRoom.broadcastSystem(Protocol.UPDATE_STATE + " " + statePayload);
+        gameRoom.broadcastSystem("UPDATE_STATE " + statePayload);
     }
 
     private void saveReplay() {
@@ -230,7 +241,7 @@ public class GameSession {
                 writer.write(move + "\n");
             }
         } catch (IOException e) {
-            System.err.println("리플레이 저장 중 오류 발생: " + e.getMessage());
+            e.printStackTrace();
         }
     }
 
