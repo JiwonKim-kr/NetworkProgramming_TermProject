@@ -227,7 +227,7 @@ public class GameSession {
 
         String statePayload = String.format("%s|%s|%s|%s",
                 boardStr.toString(), p1Captured, p2Captured, gameLogic.getCurrentPlayer().name());
-
+        
         gameRoom.broadcastSystem("UPDATE_STATE " + statePayload);
     }
 

@@ -39,12 +39,13 @@ public class GameRoom {
         } else {
             spectators.add(player);
             broadcastSystem(Protocol.SYSTEM + " " + player.getNickname() + "님이 관전자로 입장했습니다.");
+            currentSession.broadcastState();
         }
         
         // 게임이 이미 진행 중이라면, 새로 들어온 유저에게 현재 게임 상태 전송
-        if (isGameInProgress()) {
-            currentSession.broadcastState();
-        }
+        //if (isGameInProgress()) {
+        //    currentSession.broadcastState();
+        //}
         Server.broadcastRoomList();
     }
 
@@ -68,11 +69,11 @@ public class GameRoom {
 
         // 플레이어 목록에서 제거
         if (player == host) {
-            host = null;
+            host = null;Server.broadcastRoomList(); 
         } else if (player == guest) {
-            guest = null;
+            guest = null;Server.broadcastRoomList(); 
         } else {
-            spectators.remove(player);
+            spectators.remove(player);Server.broadcastRoomList(); 
         }
 
         // 호스트가 나갔다면, 게스트가 새로운 호스트가 됨
