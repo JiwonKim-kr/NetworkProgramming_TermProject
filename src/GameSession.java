@@ -84,8 +84,8 @@ public class GameSession {
     }
 
     private void startGame() {
-        if (new Random().nextBoolean()) { player1 = host; player2 = guest; } 
-        else { player1 = guest; player2 = host; }
+        player1 = host; 
+        player2 = guest;  
         
         player1.sendMessage("ASSIGN_ROLE P1");
         player2.sendMessage("ASSIGN_ROLE P2");
