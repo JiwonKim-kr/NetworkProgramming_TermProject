@@ -220,8 +220,8 @@ public class GameUI {
             img = out;
         }
         // 버튼 현재 크기에 맞춰 스케일 (약간 여백)
-        int w = Math.max(1, btn.getWidth() - 8);
-        int h = Math.max(1, btn.getHeight() - 8);
+        int w = Math.max(1, btn.getWidth() - 18);
+        int h = Math.max(1, btn.getHeight() - 18);
         Image scaled = img.getScaledInstance(w, h, Image.SCALE_SMOOTH);
         return new ImageIcon(scaled);
     }

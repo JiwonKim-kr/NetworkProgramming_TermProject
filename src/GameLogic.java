@@ -27,7 +27,7 @@ public class GameLogic {
 
     public void startGame() {
         board.setupInitialBoard();
-        currentPlayer = new Random().nextBoolean() ? Piece.Player.P1 : Piece.Player.P2;
+        currentPlayer = Piece.Player.P1;
         gameState = GameState.IN_PROGRESS;
         winner = null;
         moveHistory.clear();
