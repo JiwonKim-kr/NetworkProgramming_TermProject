@@ -30,7 +30,7 @@ public class GameClient {
             new Thread(this::handleServerConnection).start();
 
         } catch (IOException e) {
-            onMessageReceived.accept("ERROR: 서버에 연결할 수 없습니다.");
+            onMessageReceived.accept(Protocol.ERROR + " 서버에 연결할 수 없습니다.");
         }
     }
 
@@ -43,14 +43,14 @@ public class GameClient {
                 String[] parts = message.split(" ", 2);
                 String command = parts[0];
 
-                if (command.equals("ASSIGN_ROLE")) {
+                if (command.equals(Protocol.ASSIGN_ROLE)) {
                     this.playerRole = parts[1];
                 } else {
                     onMessageReceived.accept(message);
                 }
             }
         } catch (IOException e) {
-            onMessageReceived.accept("ERROR: 서버와 연결이 끊어졌습니다.");
+            onMessageReceived.accept(Protocol.ERROR + " 서버와 연결이 끊어졌습니다.");
         } finally {
             closeConnection();
         }

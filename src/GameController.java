@@ -6,14 +6,13 @@ public class GameController {
     private GameClient client;
     private int selectedRow = -1, selectedCol = -1;
     private Piece selectedCapturedPiece = null;
+    private boolean isFirstTurnHighlightNeeded = false;
 
     public void start() {
         this.client = new GameClient(this::handleServerMessage);
         SwingUtilities.invokeLater(() -> {
             this.ui = new GameUI(this);
-            // 1. GUI 컴포넌트를 먼저 생성하고 화면에 표시합니다.
-            this.ui.createAndShow(); 
-            // 2. 그 후에 닉네임 입력을 요청합니다.
+            this.ui.createAndShow();
             this.ui.showNicknamePrompt();
         });
     }
@@ -27,19 +26,19 @@ public class GameController {
         }
     }
 
-    public void createRoom(String roomTitle) { client.sendMessage("CREATE_ROOM " + roomTitle); }
-    public void joinRoom(String roomName) { client.sendMessage("JOIN_ROOM " + roomName); }
-    public void sendChatMessage(String message) { client.sendMessage("CHAT " + message); }
-    public void sendReady() { client.sendMessage("READY"); }
-    public void leaveRoom() { client.sendMessage("LEAVE_ROOM"); }
-    public void requestUndo() { client.sendMessage("UNDO_REQUEST"); }
-    public void respondUndo(boolean accepted) { client.sendMessage("UNDO_RESPONSE " + accepted); }
+    public void createRoom(String roomTitle) { client.sendMessage(Protocol.CREATE_ROOM + " " + roomTitle); }
+    public void joinRoom(String roomName) { client.sendMessage(Protocol.JOIN_ROOM + " " + roomName); }
+    public void sendChatMessage(String message) { client.sendMessage(Protocol.CHAT + " " + message); }
+    public void sendReady() { client.sendMessage(Protocol.READY); }
+    public void leaveRoom() { client.sendMessage(Protocol.LEAVE_ROOM); }
+    public void requestUndo() { client.sendMessage(Protocol.UNDO_REQUEST); }
+    public void respondUndo(boolean accepted) { client.sendMessage(Protocol.UNDO_RESPONSE + " " + accepted); }
 
     public void onBoardClicked(int r, int c) {
-        if (ui.isMyTurn()) return;
+        if (!ui.isMyTurn()) return;
 
         if (selectedCapturedPiece != null) {
-            client.sendMessage(String.format("PLACE %s %d %d", selectedCapturedPiece.name(), r, c));
+            client.sendMessage(String.format("%s %s %d %d", Protocol.PLACE, selectedCapturedPiece.name(), r, c));
             clearSelections();
             return;
         }
@@ -48,7 +47,7 @@ public class GameController {
 
         if (selectedRow != -1) {
             if (isClickOnValidMove) {
-                client.sendMessage(String.format("MOVE %d %d %d %d", selectedRow, selectedCol, r, c));
+                client.sendMessage(String.format("%s %d %d %d %d", Protocol.MOVE, selectedRow, selectedCol, r, c));
                 clearSelections();
             } else {
                 clearSelections();
@@ -60,7 +59,7 @@ public class GameController {
     }
 
     public void onCapturedPieceClicked(Piece piece, Object sourceButton) {
-        if (ui.isMyTurn()) return;
+        if (!ui.isMyTurn()) return;
         clearSelections();
         selectedCapturedPiece = piece;
         ui.highlightSelectedCapturedPiece(sourceButton);
@@ -72,7 +71,7 @@ public class GameController {
             selectedRow = r;
             selectedCol = c;
             ui.highlightSelectedBoardPiece(r, c);
-            client.sendMessage("GET_VALID_MOVES " + r + " " + c);
+            client.sendMessage(Protocol.GET_VALID_MOVES + " " + r + " " + c);
         }
     }
 
@@ -88,6 +87,10 @@ public class GameController {
         return currentPlayerRole.equals(client.getPlayerRole());
     }
 
+    public String getPlayerRole() {
+        return client.getPlayerRole();
+    }
+
     // --- Server Messages ---
     private void handleServerMessage(String message) {
         SwingUtilities.invokeLater(() -> {
@@ -96,48 +99,53 @@ public class GameController {
             String payload = parts.length > 1 ? parts[1] : "";
 
             switch (command) {
-                case "NICKNAME_OK":
+                case Protocol.NICKNAME_OK:
                     ui.setTitle("십이장기 - " + client.getNickname());
                     ui.showLobby();
                     break;
-                case "NICKNAME_TAKEN":
+                case Protocol.NICKNAME_TAKEN:
                     ui.showError("해당 닉네임은 이미 존재합니다.");
                     ui.showNicknamePrompt();
                     break;
-                case "UPDATE_ROOMLIST":
+                case Protocol.UPDATE_ROOMLIST:
                     ui.updateRoomList(payload);
                     break;
-                case "JOIN_SUCCESS":
+                case Protocol.JOIN_SUCCESS:
                     ui.enterRoom(payload);
                     break;
-                case "GOTO_LOBBY":
+                case Protocol.GOTO_LOBBY:
                     ui.showLobby();
                     ui.setTitle("십이장기 - " + client.getNickname());
                     ui.resetRoomUI();
                     break;
-                case "CHAT":
-                case "SYSTEM":
+                case Protocol.CHAT:
+                case Protocol.SYSTEM:
                     ui.appendChatMessage(payload);
                     break;
-                case "PLAYER_READY":
+                case Protocol.PLAYER_READY:
                     ui.updatePlayerStatus(payload.split(" "));
                     break;
-                case "GAME_START":
+                case Protocol.GAME_START:
+                    isFirstTurnHighlightNeeded = true;
                     ui.handleGameStart();
                     break;
-                case "UPDATE_STATE":
+                case Protocol.UPDATE_STATE:
                     ui.updateGameState(payload);
+                    if (isFirstTurnHighlightNeeded && ui.isMyTurn()) {
+                        ui.highlightPlayerPieces(client.getPlayerRole());
+                        isFirstTurnHighlightNeeded = false;
+                    }
                     break;
-                case "VALID_MOVES":
+                case Protocol.VALID_MOVES:
                     ui.highlightValidMoves(payload);
                     break;
-                case "GAME_OVER":
+                case Protocol.GAME_OVER:
                     ui.handleGameOver(payload);
                     break;
-                case "UNDO_REQUESTED":
+                case Protocol.UNDO_REQUESTED:
                     ui.showUndoRequest(payload);
                     break;
-                case "ERROR":
+                case Protocol.ERROR:
                     ui.showError(payload);
                     break;
                 default:
