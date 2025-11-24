@@ -5,7 +5,7 @@ import java.io.PrintWriter;
 import java.net.Socket;
 import java.util.stream.Collectors;
 
-public class ClientHandler extends Thread {
+public class ClientHandler extends Thread implements PlayerConnection {
     private Socket clientSocket;
     private PrintWriter out;
     private BufferedReader in;
@@ -113,10 +113,12 @@ public class ClientHandler extends Thread {
         }
     }
 
+    @Override
     public void sendMessage(String message) {
         out.println(message);
     }
 
+    @Override
     public String getNickname() {
         return nickname;
     }

@@ -5,12 +5,12 @@ import java.util.List;
 public class GameRoom {
 
     private final String title;
-    private ClientHandler host;
-    private ClientHandler guest;
-    private final List<ClientHandler> spectators = Collections.synchronizedList(new ArrayList<>());
+    private PlayerConnection host;
+    private PlayerConnection guest;
+    private final List<PlayerConnection> spectators = Collections.synchronizedList(new ArrayList<>());
     private GameSession currentSession;
 
-    public GameRoom(String title, ClientHandler host) {
+    public GameRoom(String title, PlayerConnection host) {
         this.title = title;
         this.host = host;
         // 처음에는 플레이어가 한 명이므로, guest가 없는 대기 세션을 생성
@@ -20,7 +20,7 @@ public class GameRoom {
     /**
      * 플레이어로부터 받은 명령을 현재 게임 세션으로 전달합니다.
      */
-    public synchronized void handlePlayerCommand(ClientHandler player, String message) {
+    public synchronized void handlePlayerCommand(PlayerConnection player, String message) {
         if (currentSession != null) {
             currentSession.processCommand(player, message);
         }
@@ -30,7 +30,7 @@ public class GameRoom {
      * 새로운 플레이어를 방에 추가합니다.
      * 게스트 자리가 비어있으면 게스트로, 아니면 관전자로 추가됩니다.
      */
-    public synchronized void addPlayer(ClientHandler player) {
+    public synchronized void addPlayer(PlayerConnection player) {
         if (this.guest == null) {
             this.guest = player;
             broadcastSystem(Protocol.SYSTEM + " " + player.getNickname() + "님이 GUEST로 입장했습니다.");
@@ -52,13 +52,13 @@ public class GameRoom {
      * 방에서 플레이어를 제거합니다.
      * 플레이어가 호스트나 게스트였다면 게임에 영향을 미칠 수 있습니다.
      */
-    public synchronized void removePlayer(ClientHandler player) {
+    public synchronized void removePlayer(PlayerConnection player) {
         String leavingNickname = player.getNickname();
         boolean wasCorePlayer = (player == host || player == guest);
 
         // 게임 중에 핵심 플레이어(호스트/게스트)가 나갔을 경우, 게임을 종료시킴
         if (wasCorePlayer && isGameInProgress()) {
-            ClientHandler winner = (player == host) ? guest : host;
+            PlayerConnection winner = (player == host) ? guest : host;
             if (winner != null) {
                 currentSession.endGame(winner, "상대방이 퇴장하여 게임에서 승리했습니다.");
                 // endGame -> onSessionFinished -> startNewSession의 순서로 호출되어 아래 로직과 중복 실행되지 않음
@@ -108,7 +108,7 @@ public class GameRoom {
      * 승자가 새로운 호스트가 되고, 새로운 게임 세션을 준비합니다.
      * @param winner 승리한 플레이어
      */
-    public void onSessionFinished(ClientHandler winner) {
+    public void onSessionFinished(PlayerConnection winner) {
         // 승자가 새로운 호스트가 됨
         if (winner != host) {
             this.guest = this.host;
@@ -142,8 +142,8 @@ public class GameRoom {
         getAllUsers().forEach(user -> user.sendMessage(message));
     }
 
-    public synchronized List<ClientHandler> getAllUsers() {
-        List<ClientHandler> allUsers = new ArrayList<>();
+    public synchronized List<PlayerConnection> getAllUsers() {
+        List<PlayerConnection> allUsers = new ArrayList<>();
         if (host != null) allUsers.add(host);
         if (guest != null) allUsers.add(guest);
         allUsers.addAll(spectators);
