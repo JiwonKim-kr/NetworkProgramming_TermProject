@@ -6,14 +6,13 @@ public class GameController {
     private GameClient client;
     private int selectedRow = -1, selectedCol = -1;
     private Piece selectedCapturedPiece = null;
-    private boolean isFirstTurnHighlightNeeded = false;
 
     public void start() {
         this.client = new GameClient(this::handleServerMessage);
         SwingUtilities.invokeLater(() -> {
             this.ui = new GameUI(this);
-            this.ui.createAndShow();
-            this.ui.showNicknamePrompt();
+            ui.createAndShow();
+            ui.showNicknamePrompt();
         });
     }
 
@@ -26,19 +25,26 @@ public class GameController {
         }
     }
 
-    public void createRoom(String roomTitle) { client.sendMessage(Protocol.CREATE_ROOM + " " + roomTitle); }
-    public void joinRoom(String roomName) { client.sendMessage(Protocol.JOIN_ROOM + " " + roomName); }
-    public void sendChatMessage(String message) { client.sendMessage(Protocol.CHAT + " " + message); }
-    public void sendReady() { client.sendMessage(Protocol.READY); }
-    public void leaveRoom() { client.sendMessage(Protocol.LEAVE_ROOM); }
-    public void requestUndo() { client.sendMessage(Protocol.UNDO_REQUEST); }
-    public void respondUndo(boolean accepted) { client.sendMessage(Protocol.UNDO_RESPONSE + " " + accepted); }
+    public void requestNicknameChange() {
+        String newNickname = ui.promptForNewNickname();
+        if (newNickname != null && !newNickname.trim().isEmpty()) {
+            client.sendMessage("CHANGE_NICKNAME " + newNickname);
+        }
+    }
+
+    public void createRoom(String roomTitle) { client.sendMessage("CREATE_ROOM " + roomTitle); }
+    public void joinRoom(String roomName) { client.sendMessage("JOIN_ROOM " + roomName); }
+    public void sendChatMessage(String message) { client.sendMessage("CHAT " + message); }
+    public void sendReady() { client.sendMessage("READY"); }
+    public void leaveRoom() { client.sendMessage("LEAVE_ROOM"); }
+    public void requestUndo() { client.sendMessage("UNDO_REQUEST"); }
+    public void respondUndo(boolean accepted) { client.sendMessage("UNDO_RESPONSE " + accepted); }
 
     public void onBoardClicked(int r, int c) {
         if (!ui.isMyTurn()) return;
 
         if (selectedCapturedPiece != null) {
-            client.sendMessage(String.format("%s %s %d %d", Protocol.PLACE, selectedCapturedPiece.name(), r, c));
+            client.sendMessage(String.format("PLACE %s %d %d", selectedCapturedPiece.name(), r, c));
             clearSelections();
             return;
         }
@@ -47,7 +53,7 @@ public class GameController {
 
         if (selectedRow != -1) {
             if (isClickOnValidMove) {
-                client.sendMessage(String.format("%s %d %d %d %d", Protocol.MOVE, selectedRow, selectedCol, r, c));
+                client.sendMessage(String.format("MOVE %d %d %d %d", selectedRow, selectedCol, r, c));
                 clearSelections();
             } else {
                 clearSelections();
@@ -71,7 +77,7 @@ public class GameController {
             selectedRow = r;
             selectedCol = c;
             ui.highlightSelectedBoardPiece(r, c);
-            client.sendMessage(Protocol.GET_VALID_MOVES + " " + r + " " + c);
+            client.sendMessage("GET_VALID_MOVES " + r + " " + c);
         }
     }
 
@@ -86,9 +92,9 @@ public class GameController {
         if (client == null) return false;
         return currentPlayerRole.equals(client.getPlayerRole());
     }
-
+    
     public String getPlayerRole() {
-        return client.getPlayerRole();
+        return client != null ? client.getPlayerRole() : null;
     }
 
     // --- Server Messages ---
@@ -99,53 +105,53 @@ public class GameController {
             String payload = parts.length > 1 ? parts[1] : "";
 
             switch (command) {
-                case Protocol.NICKNAME_OK:
+                case "NICKNAME_OK":
                     ui.setTitle("십이장기 - " + client.getNickname());
                     ui.showLobby();
                     break;
-                case Protocol.NICKNAME_TAKEN:
+                case "NICKNAME_CHANGED":
+                    client.setNickname(payload);
+                    ui.setTitle("십이장기 - " + payload);
+                    ui.appendChatMessage("SYSTEM: 닉네임이 " + payload + "(으)로 변경되었습니다.");
+                    break;
+                case "NICKNAME_TAKEN":
                     ui.showError("해당 닉네임은 이미 존재합니다.");
-                    ui.showNicknamePrompt();
+                    // 닉네임 변경 실패 시에는 다시 묻지 않음
                     break;
-                case Protocol.UPDATE_ROOMLIST:
-                    ui.updateRoomList(payload);
+                case "UPDATE_ROOMLIST":
+                    ui.updateRoomList(payload.isEmpty() ? new String[0] : payload.split(","));
                     break;
-                case Protocol.JOIN_SUCCESS:
+                case "JOIN_SUCCESS":
                     ui.enterRoom(payload);
                     break;
-                case Protocol.GOTO_LOBBY:
+                case "GOTO_LOBBY":
                     ui.showLobby();
                     ui.setTitle("십이장기 - " + client.getNickname());
                     ui.resetRoomUI();
                     break;
-                case Protocol.CHAT:
-                case Protocol.SYSTEM:
+                case "CHAT":
+                case "SYSTEM":
                     ui.appendChatMessage(payload);
                     break;
-                case Protocol.PLAYER_READY:
+                case "PLAYER_READY":
                     ui.updatePlayerStatus(payload.split(" "));
                     break;
-                case Protocol.GAME_START:
-                    isFirstTurnHighlightNeeded = true;
+                case "GAME_START":
                     ui.handleGameStart();
                     break;
-                case Protocol.UPDATE_STATE:
+                case "UPDATE_STATE":
                     ui.updateGameState(payload);
-                    if (isFirstTurnHighlightNeeded && ui.isMyTurn()) {
-                        ui.highlightPlayerPieces(client.getPlayerRole());
-                        isFirstTurnHighlightNeeded = false;
-                    }
                     break;
-                case Protocol.VALID_MOVES:
+                case "VALID_MOVES":
                     ui.highlightValidMoves(payload);
                     break;
-                case Protocol.GAME_OVER:
+                case "GAME_OVER":
                     ui.handleGameOver(payload);
                     break;
-                case Protocol.UNDO_REQUESTED:
+                case "UNDO_REQUESTED":
                     ui.showUndoRequest(payload);
                     break;
-                case Protocol.ERROR:
+                case "ERROR":
                     ui.showError(payload);
                     break;
                 default:

@@ -24,14 +24,10 @@ public class Server {
                 clientThread.start();
             }
         } catch (IOException e) {
-            System.err.println("서버 실행 중 오류 발생: " + e.getMessage());
             e.printStackTrace();
         }
     }
 
-    /**
-     * 로비에 있는 모든 클라이언트에게 메시지를 브로드캐스트합니다.
-     */
     public static void broadcastToLobby(String message) {
         synchronized (clients) {
             clients.stream()
@@ -40,30 +36,22 @@ public class Server {
         }
     }
 
-    /**
-     * 모든 로비 유저에게 현재 게임 방 목록을 브로드캐스트합니다.
-     */
     public static void broadcastRoomList() {
         String roomListStr = gameRooms.values().stream()
             .map(room -> String.format("%s (%d/8) %s",
                 room.getTitle(), room.getPlayerCount(), room.isGameInProgress() ? "[게임중]" : "[대기중]"))
             .collect(Collectors.joining(","));
-        broadcastToLobby(Protocol.UPDATE_ROOMLIST + " " + roomListStr);
+        broadcastToLobby("UPDATE_ROOMLIST " + roomListStr);
     }
 
-    /**
-     * 클라이언트 연결 종료 시 호출되어 관련 정보를 정리합니다.
-     */
     public static void removeClient(ClientHandler client) {
         clients.remove(client);
         if (client.getNickname() != null) {
             nicknames.remove(client.getNickname());
-            // 클라이언트가 방에 있었다면, 방에서 나가는 처리를 위임
             if (client.getCurrentRoom() != null) {
                 client.getCurrentRoom().removePlayer(client);
             } else {
-                // 로비에 있었다면, 로비에 퇴장 메시지 전송
-                broadcastToLobby(Protocol.SYSTEM + " " + client.getNickname() + "님이 퇴장했습니다.");
+                broadcastToLobby("SYSTEM: " + client.getNickname() + "님이 퇴장했습니다.");
             }
         }
     }
@@ -76,34 +64,35 @@ public class Server {
         nicknames.add(nickname);
     }
 
+    public static synchronized boolean changeNickname(String oldNickname, String newNickname) {
+        if (isNicknameTaken(newNickname)) {
+            return false;
+        }
+        nicknames.remove(oldNickname);
+        nicknames.add(newNickname);
+        return true;
+    }
+
     public static void createGameRoom(String title, ClientHandler host) {
-        if (title == null || title.isBlank()) {
-            host.sendMessage(Protocol.ERROR + " 방 제목은 비워둘 수 없습니다.");
-            return;
+        if (!gameRooms.containsKey(title)) {
+            GameRoom newRoom = new GameRoom(title, host);
+            gameRooms.put(title, newRoom);
+            host.setCurrentRoom(newRoom);
+            host.sendMessage("JOIN_SUCCESS " + title);
+            broadcastRoomList();
+        } else {
+            host.sendMessage("ERROR: 방 생성 실패: 이미 존재하는 방 제목입니다.");
         }
-        if (gameRooms.containsKey(title)) {
-            host.sendMessage(Protocol.ERROR + " 방 생성 실패: 이미 존재하는 방 제목입니다.");
-            return;
-        }
-        
-        GameRoom newRoom = new GameRoom(title, host);
-        gameRooms.put(title, newRoom);
-        host.setCurrentRoom(newRoom);
-        // GameRoom에 진입하는 것은 ClientHandler가 처리, 여기서는 방 목록 갱신만 처리
-        broadcastRoomList();
-        host.sendMessage(Protocol.JOIN_SUCCESS + " " + title);
     }
 
     public static void joinGameRoom(String title, ClientHandler player) {
         GameRoom room = gameRooms.get(title);
         if (room != null) {
-            // 실제 플레이어 추가 로직은 GameRoom에 위임
             room.addPlayer(player);
             player.setCurrentRoom(room);
-            // TODO: JOIN_SUCCESS 메시지 전송을 GameRoom.addPlayer 내부로 옮겨 일관성 유지 고려
-            player.sendMessage(Protocol.JOIN_SUCCESS + " " + title);
+            player.sendMessage("JOIN_SUCCESS " + title);
         } else {
-            player.sendMessage(Protocol.ERROR + " 방 입장 실패: 존재하지 않는 방입니다.");
+            player.sendMessage("ERROR: 방 입장 실패: 존재하지 않는 방입니다.");
         }
     }
 
