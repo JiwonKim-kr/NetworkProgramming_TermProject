@@ -48,8 +48,14 @@ public class GameBoard implements Cloneable {
         board[toRow][toCol] = movingPiece;
         board[fromRow][fromCol] = null;
 
-        if (movingPiece == Piece.P1_PAWN && toRow == 0) board[toRow][toCol] = movingPiece.promote();
-        if (movingPiece == Piece.P2_PAWN && toRow == 3) board[toRow][toCol] = movingPiece.promote();
+        // '자' 승급 처리
+        if (movingPiece.getDisplayName().equals("자")) {
+            if (movingPiece.getOwner() == Piece.Player.P1 && toRow == 0) {
+                board[toRow][toCol] = movingPiece.promote();
+            } else if (movingPiece.getOwner() == Piece.Player.P2 && toRow == 3) {
+                board[toRow][toCol] = movingPiece.promote();
+            }
+        }
 
         return true;
     }
@@ -65,7 +71,11 @@ public class GameBoard implements Cloneable {
 
     public boolean placeCapturedPiece(Piece.Player placingPlayer, Piece pieceToPlace, int row, int col) {
         if (board[row][col] != null) return false;
-        if ((placingPlayer == Piece.Player.P1 && row == 0) || (placingPlayer == Piece.Player.P2 && row == 3)) return false;
+        // '자'는 상대 진영 첫 줄에 놓을 수 없음
+        if (pieceToPlace.getDisplayName().equals("자")) {
+            if (placingPlayer == Piece.Player.P1 && row == 0) return false;
+            if (placingPlayer == Piece.Player.P2 && row == 3) return false;
+        }
         if (pieceToPlace.getOwner() != placingPlayer) return false;
 
         List<Piece> capturedList = (placingPlayer == Piece.Player.P1) ? p1Captured : p2Captured;
@@ -76,34 +86,16 @@ public class GameBoard implements Cloneable {
         return false;
     }
 
+    /**
+     * 해당 위치의 기물에 대한 유효한 이동 목록을 반환합니다.
+     * 실제 계산은 기물이 가진 MoveStrategy에 위임합니다.
+     */
     public List<int[]> getValidMoves(int row, int col) {
-        List<int[]> moves = new ArrayList<>();
         Piece piece = getPieceAt(row, col);
-        if (piece == null) return moves;
-
-        int[][] directions = getDirections(piece);
-        for (int[] d : directions) {
-            int newRow = row + d[0];
-            int newCol = col + d[1];
-            if (isValid(newRow, newCol)) {
-                Piece target = getPieceAt(newRow, newCol);
-                if (target == null || target.getOwner() != piece.getOwner()) {
-                    moves.add(new int[]{newRow, newCol});
-                }
-            }
+        if (piece == null) {
+            return new ArrayList<>();
         }
-        return moves;
-    }
-
-    protected int[][] getDirections(Piece piece) {
-        switch (piece.getDisplayName()) {
-            case "왕": return new int[][]{{-1,0}, {1,0}, {0,-1}, {0,1}, {-1,-1}, {-1,1}, {1,-1}, {1,1}};
-            case "장": return new int[][]{{-1,0}, {1,0}, {0,-1}, {0,1}};
-            case "상": return new int[][]{{-1,-1}, {-1,1}, {1,-1}, {1,1}};
-            case "자": return (piece.getOwner() == Piece.Player.P1) ? new int[][]{{-1,0}} : new int[][]{{1,0}};
-            case "후": return new int[][]{{-1,0}, {1,0}, {0,-1}, {0,1}, {-1,-1}, {-1,1}};
-            default: return new int[0][0];
-        }
+        return piece.getMoveStrategy().getValidMoves(this, piece, row, col);
     }
 
     public int[] findPiece(Piece pieceToFind) {
@@ -117,7 +109,11 @@ public class GameBoard implements Cloneable {
         return null;
     }
 
-    private boolean isValid(int row, int col) {
+    /**
+     * 주어진 좌표가 보드 범위 내에 있는지 확인합니다.
+     * MoveStrategy에서 보드 경계를 확인할 수 있도록 public으로 변경합니다.
+     */
+    public boolean isValid(int row, int col) {
         return row >= 0 && row < 4 && col >= 0 && col < 3;
     }
 
@@ -145,7 +141,7 @@ public class GameBoard implements Cloneable {
             cloned.p2Captured = new ArrayList<>(this.p2Captured);
             return cloned;
         } catch (CloneNotSupportedException e) {
-            throw new AssertionError();
+            throw new AssertionError(); // should not happen
         }
     }
 }

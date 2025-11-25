@@ -1,19 +1,32 @@
 public enum Piece {
-    P1_KING("왕", Player.P1), P1_GENERAL("장", Player.P1), P1_ELEPHANT("상", Player.P1), P1_PAWN("자", Player.P1), P1_PRINCE("후", Player.P1),
-    P2_KING("왕", Player.P2), P2_GENERAL("장", Player.P2), P2_ELEPHANT("상", Player.P2), P2_PAWN("자", Player.P2), P2_PRINCE("후", Player.P2);
+    // 각 기물에 맞는 이동 전략을 주입합니다.
+    P1_KING("왕", Player.P1, new DefaultMoveStrategy(new int[][]{{-1,0}, {1,0}, {0,-1}, {0,1}, {-1,-1}, {-1,1}, {1,-1}, {1,1}})),
+    P1_GENERAL("장", Player.P1, new DefaultMoveStrategy(new int[][]{{-1,0}, {1,0}, {0,-1}, {0,1}})),
+    P1_ELEPHANT("상", Player.P1, new DefaultMoveStrategy(new int[][]{{-1,-1}, {-1,1}, {1,-1}, {1,1}})),
+    P1_PAWN("자", Player.P1, new PawnMoveStrategy()),
+    P1_PRINCE("후", Player.P1, new DefaultMoveStrategy(new int[][]{{-1,0}, {1,0}, {0,-1}, {0,1}, {-1,-1}, {-1,1}})),
+
+    P2_KING("왕", Player.P2, P1_KING.moveStrategy),
+    P2_GENERAL("장", Player.P2, P1_GENERAL.moveStrategy),
+    P2_ELEPHANT("상", Player.P2, P1_ELEPHANT.moveStrategy),
+    P2_PAWN("자", Player.P2, P1_PAWN.moveStrategy),
+    P2_PRINCE("후", Player.P2, P1_PRINCE.moveStrategy);
 
     public enum Player { P1, P2 }
 
     private final String displayName;
     private final Player owner;
+    private final MoveStrategy moveStrategy;
 
-    Piece(String displayName, Player owner) {
+    Piece(String displayName, Player owner, MoveStrategy moveStrategy) {
         this.displayName = displayName;
         this.owner = owner;
+        this.moveStrategy = moveStrategy;
     }
 
     public String getDisplayName() { return displayName; }
     public Player getOwner() { return owner; }
+    public MoveStrategy getMoveStrategy() { return moveStrategy; }
 
     public Piece promote() {
         if (this == P1_PAWN) return P1_PRINCE;

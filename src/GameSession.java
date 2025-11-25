@@ -27,7 +27,6 @@ public class GameSession {
     }
 
     public synchronized void processCommand(ClientHandler player, String message) {
-        // 수정: split(" ", 2)에서 숫자 2를 제거하여 모든 인자를 파싱하도록 변경
         String[] parts = message.split(" ");
         String command = parts[0];
 
@@ -84,10 +83,10 @@ public class GameSession {
     }
 
     private void startGame() {
-    	if (new Random().nextBoolean()) { player1 = host; player2 = guest; } 
+        if (new Random().nextBoolean()) { player1 = host; player2 = guest; } 
         else { player1 = guest; player2 = host; }
         
-    	player1.sendMessage("ASSIGN_ROLE P1");
+        player1.sendMessage("ASSIGN_ROLE P1");
         player2.sendMessage("ASSIGN_ROLE P2");
 
         gameLogic.startGame();
@@ -105,7 +104,8 @@ public class GameSession {
 
             if (gameLogic.handleMove(getPlayerRole(player), fromR, fromC, toR, toC)) {
                 if (gameLogic.getGameState() == GameLogic.GameState.GAME_OVER) {
-                    endGame(player, player.getNickname() + "님이 상대 왕을 잡아 승리했습니다!");
+                    // 수정: 자연스러운 게임 종료 시에만 onSessionFinished 호출
+                    naturalEndGame(player, player.getNickname() + "님이 상대 왕을 잡아 승리했습니다!");
                 } else {
                     checkKingInOpponentZone();
                     broadcastState();
@@ -191,7 +191,8 @@ public class GameSession {
 
     private void checkKingInOpponentZone() {
         if (kingInZonePlayer != null && kingInZonePlayer == gameLogic.getCurrentPlayer()) {
-            endGame(getClient(kingInZonePlayer), kingInZonePlayer.name() + "님이 왕을 상대 진영에서 한 턴 생존시켜 승리했습니다!");
+            // 수정: 자연스러운 게임 종료 시에만 onSessionFinished 호출
+            naturalEndGame(getClient(kingInZonePlayer), kingInZonePlayer.name() + "님이 왕을 상대 진영에서 한 턴 생존시켜 승리했습니다!");
             return;
         }
 
@@ -204,7 +205,14 @@ public class GameSession {
         else kingInZonePlayer = null;
     }
 
-    public void endGame(ClientHandler winner, String reason) {
+    // 플레이어 퇴장 등 갑작스러운 종료를 위한 메소드
+    public void abortGame(String reason) {
+        gameRoom.broadcastSystem("GAME_OVER " + reason);
+        saveReplay();
+    }
+
+    // 왕을 잡거나, 왕이 생존하는 등 자연스러운 종료를 위한 메소드
+    private void naturalEndGame(ClientHandler winner, String reason) {
         gameRoom.broadcastSystem("GAME_OVER " + reason);
         saveReplay();
         gameRoom.onSessionFinished(winner);
