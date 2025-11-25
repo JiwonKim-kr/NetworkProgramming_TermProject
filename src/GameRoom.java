@@ -26,14 +26,16 @@ public class GameRoom {
         if (this.guest == null) {
             this.guest = player;
             broadcastSystem("SYSTEM: " + player.getNickname() + "님이 GUEST로 입장했습니다.");
-            startNewSession();
+            startNewSession();   // 새 판 시작할 때는 세션 쪽에서 알아서 상태 뿌림
         } else {
             spectators.add(player);
             broadcastSystem("SYSTEM: " + player.getNickname() + "님이 관전자로 입장했습니다.");
-        }
-        
-        if (isGameInProgress()) {
-            currentSession.broadcastState();
+
+            // 🔹 이미 게임 진행 중인 방에 관전자로 들어온 경우:
+            //    지금까지 진행된 상태를 다시 한 번 전원에게 뿌려준다.
+            if (isGameInProgress()) {
+                currentSession.broadcastState();
+            }
         }
         Server.broadcastRoomList();
     }
@@ -44,8 +46,9 @@ public class GameRoom {
 
         // 게임 중에 핵심 플레이어가 나갔을 경우, 게임 세션만 종료
         if (wasPlayer && isGameInProgress()) {
-            currentSession.abortGame("상대방이 퇴장하여 게임이 종료되었습니다.");
+            currentSession.abortGame("상대방이 퇴장하여 게임이 종료되었습니다.", player);
         }
+        
 
         // 역할 재할당
         if (player == host) {
@@ -92,6 +95,11 @@ public class GameRoom {
 
     public void broadcastSystem(String message) {
         getAllUsers().forEach(user -> user.sendMessage(message));
+    }
+    public void broadcastSystemExcept(ClientHandler except, String message) {
+        getAllUsers().stream()
+                .filter(user -> user != except)
+                .forEach(user -> user.sendMessage(message));
     }
 
     public void broadcastChat(String message) {
