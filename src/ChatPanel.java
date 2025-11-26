@@ -30,6 +30,6 @@ public class ChatPanel extends JPanel {
     }
 
     public void appendChatMessage(String message) {
-        chatArea.append(message + "\\n");
+        chatArea.append(message + "\n");
     }
 }

@@ -86,7 +86,7 @@ public class RoomPanel extends JPanel {
     }
 
     public void handleGameStart() { 
-        appendChatMessage(Protocol.SYSTEM + ": 게임이 시작되었습니다!\\n"); 
+        appendChatMessage(Protocol.SYSTEM + ": 게임이 시작되었습니다!\n");
         hostStatusLabel.setText(Protocol.HOST + ": PLAYING"); 
         guestStatusLabel.setText(Protocol.GUEST + ": PLAYING"); 
     }
