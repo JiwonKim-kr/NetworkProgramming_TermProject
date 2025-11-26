@@ -210,6 +210,10 @@ public class GameSession {
         gameRoom.broadcastSystem("GAME_OVER " + reason);
         saveReplay();
     }
+    public void abortGame(String reason, ClientHandler leaver) {
+        gameRoom.broadcastSystemExcept(leaver, "GAME_OVER " + reason);
+        saveReplay();
+    }
 
     // 왕을 잡거나, 왕이 생존하는 등 자연스러운 종료를 위한 메소드
     private void naturalEndGame(ClientHandler winner, String reason) {

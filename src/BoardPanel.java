@@ -105,21 +105,56 @@ public class BoardPanel extends JPanel {
         opponentPanel.revalidate();
         opponentPanel.repaint();
     }
-    
     private void populateCapturedPanel(JPanel panel, String capturedStr, boolean isMyPanel) {
         if (capturedStr == null || capturedStr.isEmpty()) return;
+
         Arrays.stream(capturedStr.split(","))
-              .map(Piece::valueOf)
+              .map(String::trim)
+              .filter(s -> !s.isEmpty())
+              .map(Piece::valueOf)   // 문자열 → Piece
               .forEach(piece -> {
-                  JButton pieceButton = new JButton(piece.getDisplayName());
+                  // 캡쳐 말용 버튼
+                  JButton pieceButton = new JButton();
+
+                  // 🔹 버튼 자체 크기(스케일) 줄이기
+                  pieceButton.setPreferredSize(new Dimension(36, 36));
+
+                  // 내 패널: 내 말 → 보드랑 같은 방향
+                  // 상대 패널: 상대 말 → 180도 뒤집어서 표시
+                  boolean rotate180 = !isMyPanel;
+
+                  ImageIcon baseIcon = getPieceIcon(piece, pieceButton, rotate180);
+
+                  if (baseIcon != null) {
+                      int iw = baseIcon.getIconWidth();
+                      int ih = baseIcon.getIconHeight();
+                      int scaledW = (int)(iw * 0.9);   // 90%로 축소
+                      int scaledH = (int)(ih * 0.9);
+
+                      Image scaledImg = baseIcon.getImage()
+                                                .getScaledInstance(scaledW, scaledH, Image.SCALE_SMOOTH);
+                      ImageIcon scaledIcon = new ImageIcon(scaledImg);
+
+                      pieceButton.setIcon(scaledIcon);
+                      pieceButton.setToolTipText(piece.getDisplayName());
+                      pieceButton.setMargin(new Insets(0, 0, 0, 0));
+                      pieceButton.setFocusPainted(false);
+                      pieceButton.setContentAreaFilled(false);
+                      pieceButton.setBorderPainted(true);
+                  }
+
                   if (isMyPanel) {
-                      pieceButton.addActionListener(e -> controller.onCapturedPieceClicked(piece, e.getSource()));
+                      pieceButton.addActionListener(
+                          e -> controller.onCapturedPieceClicked(piece, e.getSource())
+                      );
                   } else {
                       pieceButton.setEnabled(false);
                   }
+
                   panel.add(pieceButton);
               });
     }
+
 
     public void highlightValidMoves(String payload) {
         clearHighlights(false);
@@ -195,9 +230,12 @@ public class BoardPanel extends JPanel {
             g2d.dispose();
             img = rotatedImg;
         }
-        
-        int scaledWidth = Math.max(1, btn.getWidth() - 18);
-        int scaledHeight = Math.max(1, btn.getHeight() - 18);
+        int wBtn = btn.getWidth();
+        int hBtn = btn.getHeight();
+        if (wBtn <= 1) wBtn = 48;
+        if (hBtn <= 1) hBtn = 48;
+        int scaledWidth = Math.max(1, wBtn - 18);
+        int scaledHeight = Math.max(1, hBtn - 18);
         Image scaledImg = img.getScaledInstance(scaledWidth, scaledHeight, Image.SCALE_SMOOTH);
         return new ImageIcon(scaledImg);
     }

@@ -61,7 +61,7 @@ public class GameUI {
     public void enterRoom(String roomTitle) {
         cardLayout.show(mainPanel, "ROOM");
         frame.setTitle("십이장기 - " + roomTitle);
-        roomPanel.resetRoomUI();
+        
     }
 
     public void showError(String message) {
