@@ -92,6 +92,9 @@ public class RoomPanel extends JPanel {
     }
 
     public void updateGameState(String payload) {
+        // 게임 상태가 업데이트 될 때마다 BoardPanel의 시점을 현재 플레이어 역할에 맞게 설정
+        boardPanel.setPlayerRoleForView(controller.getPlayerRole());
+
         String[] stateParts = payload.split("\\|", 4);
         boardPanel.updateBoard(stateParts[0]);
         if (stateParts.length > 2) {
@@ -138,6 +141,8 @@ public class RoomPanel extends JPanel {
         return boardPanel.isValidMove(r, c);
     }
 
+
+
     public void handleGameOver(String payload) {
         boardPanel.setMyTurn(false);
         JOptionPane.showMessageDialog(this, payload, "게임 종료", JOptionPane.INFORMATION_MESSAGE);
@@ -168,8 +173,6 @@ public class RoomPanel extends JPanel {
 
     private void applyTurnBackground(boolean isMyTurn) {
         Color bg = isMyTurn ? Color.ORANGE : DEFAULT_BG;
-        // 이 패널의 배경색을 바꾸는 것은 큰 의미가 없으므로 주석 처리
-        // this.setBackground(bg); 
         turnLabel.setBackground(bg);
     }
 }

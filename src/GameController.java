@@ -1,5 +1,8 @@
+import javax.swing.JFileChooser;
 import javax.swing.JOptionPane;
 import javax.swing.SwingUtilities;
+import javax.swing.filechooser.FileNameExtensionFilter;
+import java.io.File;
 
 public class GameController {
 
@@ -32,6 +35,17 @@ public class GameController {
         String newNickname = JOptionPane.showInputDialog(null, "새 닉네임을 입력하세요:", "닉네임 변경", JOptionPane.PLAIN_MESSAGE);
         if (newNickname != null && !newNickname.trim().isEmpty()) {
             client.sendMessage(Protocol.CHANGE_NICKNAME + " " + newNickname);
+        }
+    }
+
+    public void startReplay() {
+        JFileChooser fileChooser = new JFileChooser("./replays");
+        fileChooser.setDialogTitle("리플레이 파일 선택");
+        fileChooser.setFileFilter(new FileNameExtensionFilter("텍스트 파일", "txt"));
+        int result = fileChooser.showOpenDialog(null);
+        if (result == JFileChooser.APPROVE_OPTION) {
+            File selectedFile = fileChooser.getSelectedFile();
+            ui.showReplay(selectedFile);
         }
     }
 

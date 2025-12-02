@@ -1,16 +1,13 @@
 import javax.swing.*;
 import java.awt.*;
 import java.io.BufferedReader;
+import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
 import java.util.stream.Collectors;
 
-/**
- * 게임의 메인 프레임과 화면 전환을 관리하는 최상위 UI 컨테이너입니다.
- * 로비(LobbyPanel)와 게임방(RoomPanel)을 CardLayout으로 전환하는 역할을 합니다.
- */
 public class GameUI {
 
     private final GameController controller;
@@ -18,23 +15,19 @@ public class GameUI {
     private CardLayout cardLayout;
     private JPanel mainPanel;
 
-    // 하위 패널
+    // Panels
     private LobbyPanel lobbyPanel;
     private RoomPanel roomPanel;
+    private ReplayPanel replayPanel;
 
     public GameUI(GameController controller) {
         this.controller = controller;
     }
 
-    /**
-     * 메인 프레임과 하위 패널들을 생성하고 화면에 표시합니다.
-     */
     public void createAndShow() {
         frame = new JFrame("십이장기");
         frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         frame.setSize(800, 800);
-
-        // 초기 메뉴바를 로비 메뉴바로 설정합니다.
         frame.setJMenuBar(createLobbyMenuBar());
 
         cardLayout = new CardLayout();
@@ -42,73 +35,60 @@ public class GameUI {
 
         lobbyPanel = new LobbyPanel(controller);
         roomPanel = new RoomPanel(controller);
+        replayPanel = new ReplayPanel(controller, this);
 
         mainPanel.add(lobbyPanel, "LOBBY");
         mainPanel.add(roomPanel, "ROOM");
+        mainPanel.add(replayPanel, "REPLAY");
 
         frame.add(mainPanel);
         frame.setLocationRelativeTo(null);
         frame.setVisible(true);
     }
 
-    /**
-     * 로비 화면에 표시될 메뉴바를 생성합니다.
-     * @return 로비용 JMenuBar
-     */
     private JMenuBar createLobbyMenuBar() {
         JMenuBar menuBar = new JMenuBar();
         JMenu settingsMenu = new JMenu("환경설정");
+        
         JMenuItem changeNicknameItem = new JMenuItem("닉네임 변경");
         changeNicknameItem.addActionListener(e -> controller.requestNicknameChange());
 
         JMenuItem rulebookItem = new JMenuItem("십이장기 룰 북");
         rulebookItem.addActionListener(e -> showRulebook());
 
+        JMenuItem replayItem = new JMenuItem("리플레이 보기");
+        replayItem.addActionListener(e -> controller.startReplay());
+
         settingsMenu.add(changeNicknameItem);
         settingsMenu.add(rulebookItem);
+        settingsMenu.add(replayItem);
         menuBar.add(settingsMenu);
         return menuBar;
     }
 
-    /**
-     * 게임방 화면에 표시될 메뉴바를 생성합니다.
-     * @return 게임방용 JMenuBar
-     */
     private JMenuBar createRoomMenuBar() {
         JMenuBar menuBar = new JMenuBar();
         JMenu settingsMenu = new JMenu("환경설정");
-        
         JMenuItem gameSettingsItem = new JMenuItem("게임 설정 (구현 예정)");
         gameSettingsItem.setEnabled(false);
-        
         settingsMenu.add(gameSettingsItem);
         menuBar.add(settingsMenu);
         return menuBar;
     }
 
-    /**
-     * 십이장기 룰 북을 JTextArea를 포함하는 다이얼로그로 표시합니다.
-     */
     private void showRulebook() {
         JTextArea ruleText = new JTextArea(20, 50);
         ruleText.setEditable(false);
         ruleText.setLineWrap(true);
         ruleText.setWrapStyleWord(true);
         ruleText.setText(getRulebookText());
-
         JScrollPane scrollPane = new JScrollPane(ruleText);
         JOptionPane.showMessageDialog(frame, scrollPane, "십이장기 룰 북", JOptionPane.INFORMATION_MESSAGE);
     }
 
-    /**
-     * 클래스패스에서 RuleBook.txt 파일을 읽어 그 내용을 문자열로 반환합니다.
-     * @return 파일 내용 또는 오류 메시지
-     */
     private String getRulebookText() {
         try (InputStream is = getClass().getClassLoader().getResourceAsStream("RuleBook.txt")) {
-            if (is == null) {
-                return "오류: RuleBook.txt 파일을 찾을 수 없습니다.";
-            }
+            if (is == null) return "오류: RuleBook.txt 파일을 찾을 수 없습니다.";
             try (InputStreamReader isr = new InputStreamReader(is, StandardCharsets.UTF_8);
                  BufferedReader reader = new BufferedReader(isr)) {
                 return reader.lines().collect(Collectors.joining("\n"));
@@ -117,6 +97,35 @@ public class GameUI {
             e.printStackTrace();
             return "오류: 룰 북 파일을 읽는 중 문제가 발생했습니다.";
         }
+    }
+
+    // --- Panel Switching ---
+
+    public void showLobby() {
+        cardLayout.show(mainPanel, "LOBBY");
+        frame.setJMenuBar(createLobbyMenuBar());
+        roomPanel.clearChat();
+        roomPanel.resetRoomUI();
+        frame.revalidate();
+        frame.repaint();
+    }
+
+    public void enterRoom(String roomTitle) {
+        cardLayout.show(mainPanel, "ROOM");
+        frame.setTitle("십이장기 - " + roomTitle);
+        frame.setJMenuBar(createRoomMenuBar());
+        lobbyPanel.clearChat();
+        frame.revalidate();
+        frame.repaint();
+    }
+
+    public void showReplay(File replayFile) {
+        replayPanel.loadReplay(replayFile);
+        cardLayout.show(mainPanel, "REPLAY");
+        frame.setTitle("리플레이 - " + replayFile.getName());
+        frame.setJMenuBar(null); // 리플레이 중에는 메뉴바 숨김
+        frame.revalidate();
+        frame.repaint();
     }
 
     // --- Public API for Controller ---
@@ -130,28 +139,6 @@ public class GameUI {
         frame.setTitle(title);
     }
 
-    public void showLobby() {
-        cardLayout.show(mainPanel, "LOBBY");
-        frame.setJMenuBar(createLobbyMenuBar());
-        
-        roomPanel.clearChat(); // 게임방 채팅창 클리어
-        roomPanel.resetRoomUI(); // 방에서 로비로 나올 때 방 UI 초기화
-
-        frame.revalidate();
-        frame.repaint();
-    }
-
-    public void enterRoom(String roomTitle) {
-        cardLayout.show(mainPanel, "ROOM");
-        frame.setTitle("십이장기 - " + roomTitle);
-        frame.setJMenuBar(createRoomMenuBar());
-
-        lobbyPanel.clearChat(); // 로비 채팅창 클리어
-
-        frame.revalidate();
-        frame.repaint();
-    }
-
     public void showError(String message) {
         JOptionPane.showMessageDialog(frame, message, "오류", JOptionPane.ERROR_MESSAGE);
     }
@@ -163,68 +150,20 @@ public class GameUI {
 
     // --- UI Update Delegation ---
 
-    public void updateRoomList(String payload) {
-        lobbyPanel.updateRoomList(payload);
-    }
-
-    public void appendChatMessage(String message) {
-        // RoomPanel이 ChatPanel을 관리하므로 RoomPanel에 위임
-        roomPanel.appendChatMessage(message);
-    }
-
-    public void appendLobbyChatMessage(String message) {
-        lobbyPanel.appendChatMessage(message);
-    }
-
-    public void updatePlayerStatus(String[] readyInfo) {
-        roomPanel.updatePlayerStatus(readyInfo);
-    }
-
-    public void handleGameStart() {
-        roomPanel.handleGameStart();
-    }
-
-    public void updateGameState(String payload) {
-        roomPanel.updateGameState(payload);
-    }
-
-    public void highlightValidMoves(String payload) {
-        roomPanel.highlightValidMoves(payload);
-    }
-
-    public void handleGameOver(String payload) {
-        roomPanel.handleGameOver(payload);
-    }
-    
-    public void highlightSelectedBoardPiece(int r, int c) {
-        roomPanel.highlightSelectedBoardPiece(r, c);
-    }
-
-    public void highlightSelectedCapturedPiece(Object sourceButton) {
-        roomPanel.highlightSelectedCapturedPiece(sourceButton);
-    }
-
-    public void highlightPlayerPieces(String playerRole) {
-        roomPanel.highlightPlayerPieces(playerRole);
-    }
-
-    public void clearHighlights(boolean clearSelection) {
-        roomPanel.clearHighlights(clearSelection);
-    }
-
-    public boolean isMyTurn() {
-        return roomPanel.isMyTurn();
-    }
-
-    public String getPieceOwnerRole(int r, int c) {
-        return roomPanel.getPieceOwnerRole(r, c);
-    }
-
-    public boolean isValidMove(int r, int c) {
-        return roomPanel.isValidMove(r, c);
-    }
-
-    public void resetRoomUI() {
-        roomPanel.resetRoomUI();
-    }
+    public void updateRoomList(String payload) { lobbyPanel.updateRoomList(payload); }
+    public void appendChatMessage(String message) { roomPanel.appendChatMessage(message); }
+    public void appendLobbyChatMessage(String message) { lobbyPanel.appendChatMessage(message); }
+    public void updatePlayerStatus(String[] readyInfo) { roomPanel.updatePlayerStatus(readyInfo); }
+    public void handleGameStart() { roomPanel.handleGameStart(); }
+    public void updateGameState(String payload) { roomPanel.updateGameState(payload); }
+    public void highlightValidMoves(String payload) { roomPanel.highlightValidMoves(payload); }
+    public void handleGameOver(String payload) { roomPanel.handleGameOver(payload); }
+    public void highlightSelectedBoardPiece(int r, int c) { roomPanel.highlightSelectedBoardPiece(r, c); }
+    public void highlightSelectedCapturedPiece(Object sourceButton) { roomPanel.highlightSelectedCapturedPiece(sourceButton); }
+    public void highlightPlayerPieces(String playerRole) { roomPanel.highlightPlayerPieces(playerRole); }
+    public void clearHighlights(boolean clearSelection) { roomPanel.clearHighlights(clearSelection); }
+    public boolean isMyTurn() { return roomPanel.isMyTurn(); }
+    public String getPieceOwnerRole(int r, int c) { return roomPanel.getPieceOwnerRole(r, c); }
+    public boolean isValidMove(int r, int c) { return roomPanel.isValidMove(r, c); }
+    public void resetRoomUI() { roomPanel.resetRoomUI(); }
 }
