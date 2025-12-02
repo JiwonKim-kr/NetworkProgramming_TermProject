@@ -13,10 +13,14 @@ public final class Protocol {
     public static final String UNDO_REQUEST = "UNDO_REQUEST";
     public static final String UNDO_RESPONSE = "UNDO_RESPONSE";
     public static final String CHAT = "CHAT";
+    public static final String CHANGE_NICKNAME = "CHANGE_NICKNAME";
+
 
     // 서버 -> 클라이언트
     public static final String NICKNAME_OK = "NICKNAME_OK";
     public static final String NICKNAME_TAKEN = "NICKNAME_TAKEN";
+    public static final String NICKNAME_CHANGED_OK = "NICKNAME_CHANGED_OK";
+    public static final String NICKNAME_CHANGE_FAILED = "NICKNAME_CHANGE_FAILED";
     public static final String ASSIGN_ROLE = "ASSIGN_ROLE";
     public static final String UPDATE_ROOMLIST = "UPDATE_ROOMLIST";
     public static final String JOIN_SUCCESS = "JOIN_SUCCESS";

@@ -1,3 +1,4 @@
+import javax.swing.JOptionPane;
 import javax.swing.SwingUtilities;
 
 public class GameController {
@@ -23,6 +24,13 @@ public class GameController {
             client.start(nickname);
         } else {
             System.exit(0);
+        }
+    }
+
+    public void requestNicknameChange() {
+        String newNickname = JOptionPane.showInputDialog(null, "새 닉네임을 입력하세요:", "닉네임 변경", JOptionPane.PLAIN_MESSAGE);
+        if (newNickname != null && !newNickname.trim().isEmpty()) {
+            client.sendMessage(Protocol.CHANGE_NICKNAME + " " + newNickname);
         }
     }
 
@@ -106,6 +114,14 @@ public class GameController {
                 case Protocol.NICKNAME_TAKEN:
                     ui.showError("해당 닉네임은 이미 존재합니다.");
                     ui.showNicknamePrompt();
+                    break;
+                case Protocol.NICKNAME_CHANGED_OK:
+                    client.setNickname(payload);
+                    ui.setTitle("십이장기 - " + payload);
+                    JOptionPane.showMessageDialog(null, "닉네임이 성공적으로 변경되었습니다.", "알림", JOptionPane.INFORMATION_MESSAGE);
+                    break;
+                case Protocol.NICKNAME_CHANGE_FAILED:
+                    ui.showError("닉네임 변경에 실패했습니다: " + payload);
                     break;
                 case Protocol.UPDATE_ROOMLIST:
                     ui.updateRoomList(payload);

@@ -1,5 +1,11 @@
 import javax.swing.*;
 import java.awt.*;
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.nio.charset.StandardCharsets;
+import java.util.stream.Collectors;
 
 /**
  * 게임의 메인 프레임과 화면 전환을 관리하는 최상위 UI 컨테이너입니다.
@@ -52,12 +58,14 @@ public class GameUI {
     private JMenuBar createLobbyMenuBar() {
         JMenuBar menuBar = new JMenuBar();
         JMenu settingsMenu = new JMenu("환경설정");
-        JMenuItem changeNicknameItem = new JMenuItem("닉네임 변경 (구현 예정)");
-        
-        // 수정: ActionListener를 제거하고, 메뉴 아이템을 비활성화합니다.
-        changeNicknameItem.setEnabled(false);
-        
+        JMenuItem changeNicknameItem = new JMenuItem("닉네임 변경");
+        changeNicknameItem.addActionListener(e -> controller.requestNicknameChange());
+
+        JMenuItem rulebookItem = new JMenuItem("십이장기 룰 북");
+        rulebookItem.addActionListener(e -> showRulebook());
+
         settingsMenu.add(changeNicknameItem);
+        settingsMenu.add(rulebookItem);
         menuBar.add(settingsMenu);
         return menuBar;
     }
@@ -76,6 +84,39 @@ public class GameUI {
         settingsMenu.add(gameSettingsItem);
         menuBar.add(settingsMenu);
         return menuBar;
+    }
+
+    /**
+     * 십이장기 룰 북을 JTextArea를 포함하는 다이얼로그로 표시합니다.
+     */
+    private void showRulebook() {
+        JTextArea ruleText = new JTextArea(20, 50);
+        ruleText.setEditable(false);
+        ruleText.setLineWrap(true);
+        ruleText.setWrapStyleWord(true);
+        ruleText.setText(getRulebookText());
+
+        JScrollPane scrollPane = new JScrollPane(ruleText);
+        JOptionPane.showMessageDialog(frame, scrollPane, "십이장기 룰 북", JOptionPane.INFORMATION_MESSAGE);
+    }
+
+    /**
+     * 클래스패스에서 RuleBook.txt 파일을 읽어 그 내용을 문자열로 반환합니다.
+     * @return 파일 내용 또는 오류 메시지
+     */
+    private String getRulebookText() {
+        try (InputStream is = getClass().getClassLoader().getResourceAsStream("RuleBook.txt")) {
+            if (is == null) {
+                return "오류: RuleBook.txt 파일을 찾을 수 없습니다.";
+            }
+            try (InputStreamReader isr = new InputStreamReader(is, StandardCharsets.UTF_8);
+                 BufferedReader reader = new BufferedReader(isr)) {
+                return reader.lines().collect(Collectors.joining("\n"));
+            }
+        } catch (IOException e) {
+            e.printStackTrace();
+            return "오류: 룰 북 파일을 읽는 중 문제가 발생했습니다.";
+        }
     }
 
     // --- Public API for Controller ---

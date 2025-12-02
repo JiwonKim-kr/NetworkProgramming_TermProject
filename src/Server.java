@@ -76,6 +76,10 @@ public class Server {
         nicknames.add(nickname);
     }
 
+    public static synchronized void removeNickname(String nickname) {
+        nicknames.remove(nickname);
+    }
+
     public static void createGameRoom(String title, ClientHandler host) {
         if (title == null || title.isBlank()) {
             host.sendMessage(Protocol.ERROR + " 방 제목은 비워둘 수 없습니다.");
