@@ -1,14 +1,10 @@
 import javax.swing.*;
 import java.awt.*;
 
-/**
- * 게임 로비 화면을 구성하는 패널입니다.
- * 방 목록, 서버 정보, 로비 채팅 기능을 제공합니다.
- */
 public class LobbyPanel extends JPanel {
     private final GameController controller;
-    private final JButton[][] lobbyButtons = new JButton[3][2]; // 3x2로 크기 변경
-    private JList<String> userList;
+    private final JButton[][] lobbyButtons = new JButton[3][2];
+
     private DefaultListModel<String> userListModel;
     private JTextArea chatArea;
     private JTextField chatInputField;
@@ -18,7 +14,6 @@ public class LobbyPanel extends JPanel {
         this.setLayout(new BorderLayout(10, 10));
         this.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
 
-        // 메인 컨텐츠 패널 (방 목록 + 로비 채팅)
         JPanel mainContentPanel = new JPanel(new BorderLayout(10, 10));
         mainContentPanel.add(createLobbyGridPanel(), BorderLayout.CENTER);
         mainContentPanel.add(createLobbyChatPanel(), BorderLayout.SOUTH);
@@ -31,7 +26,7 @@ public class LobbyPanel extends JPanel {
         JPanel panel = new JPanel(new BorderLayout(10, 10));
         panel.add(new JLabel("대기실 목록", SwingConstants.CENTER), BorderLayout.NORTH);
 
-        JPanel lobbyGrid = new JPanel(new GridLayout(3, 2, 8, 8)); // 3x2 그리드
+        JPanel lobbyGrid = new JPanel(new GridLayout(3, 2, 8, 8));
         lobbyGrid.setBorder(BorderFactory.createLineBorder(Color.GRAY));
 
         for (int r = 0; r < 3; r++) {
@@ -42,8 +37,15 @@ public class LobbyPanel extends JPanel {
                 b.addActionListener(e -> {
                     JButton src = (JButton) e.getSource();
                     String title = (String) src.getClientProperty("roomTitle");
+                    boolean isPrivate = (Boolean) src.getClientProperty("isPrivate");
+
                     if (title != null && !title.isBlank()) {
-                        controller.joinRoom(title);
+                        String password = "";
+                        if (isPrivate) {
+                            password = JOptionPane.showInputDialog(this, "비밀번호를 입력하세요:", "비밀방 입장", JOptionPane.PLAIN_MESSAGE);
+                            if (password == null) return; // 사용자가 취소한 경우
+                        }
+                        controller.joinRoom(title, password);
                     }
                 });
                 lobbyButtons[r][c] = b;
@@ -59,9 +61,18 @@ public class LobbyPanel extends JPanel {
         JPanel panel = new JPanel();
         JButton createRoomButton = new JButton("방 만들기");
         createRoomButton.addActionListener(e -> {
-            String roomTitle = JOptionPane.showInputDialog(this, "방 제목을 입력하세요:");
-            if (roomTitle != null && !roomTitle.trim().isEmpty()) {
-                controller.createRoom(roomTitle);
+            CreateRoomDialogPanel dialogPanel = new CreateRoomDialogPanel();
+            int result = JOptionPane.showConfirmDialog(this, dialogPanel, "방 만들기", JOptionPane.OK_CANCEL_OPTION, JOptionPane.PLAIN_MESSAGE);
+
+            if (result == JOptionPane.OK_OPTION) {
+                String title = dialogPanel.getRoomTitle();
+                if (title != null && !title.trim().isEmpty()) {
+                    String password = dialogPanel.getPassword();
+                    int maxPlayers = dialogPanel.getMaxPlayers();
+                    controller.createRoom(title, password, maxPlayers);
+                } else {
+                    JOptionPane.showMessageDialog(this, "방 이름은 비워둘 수 없습니다.", "입력 오류", JOptionPane.ERROR_MESSAGE);
+                }
             }
         });
         panel.add(createRoomButton);
@@ -72,32 +83,26 @@ public class LobbyPanel extends JPanel {
         JPanel panel = new JPanel(new BorderLayout(10, 10));
         panel.setBorder(BorderFactory.createTitledBorder("접속자 목록"));
         panel.setPreferredSize(new Dimension(200, 0));
-
         userListModel = new DefaultListModel<>();
-        userList = new JList<>(userListModel);
+        JList<String> userList = new JList<>(userListModel);
         panel.add(new JScrollPane(userList), BorderLayout.CENTER);
-
         return panel;
     }
 
     private JPanel createLobbyChatPanel() {
         JPanel panel = new JPanel(new BorderLayout(5, 5));
         panel.setBorder(BorderFactory.createTitledBorder("로비 채팅"));
-
         chatArea = new JTextArea(8, 30);
         chatArea.setEditable(false);
         panel.add(new JScrollPane(chatArea), BorderLayout.CENTER);
-
         JPanel inputPanel = new JPanel(new BorderLayout());
         chatInputField = new JTextField();
         chatInputField.addActionListener(e -> sendChatMessage());
         JButton sendButton = new JButton("전송");
         sendButton.addActionListener(e -> sendChatMessage());
-
         inputPanel.add(chatInputField, BorderLayout.CENTER);
         inputPanel.add(sendButton, BorderLayout.EAST);
         panel.add(inputPanel, BorderLayout.SOUTH);
-
         return panel;
     }
 
@@ -119,21 +124,25 @@ public class LobbyPanel extends JPanel {
             }
 
             String[] items = (roomData == null || roomData.isBlank()) ? new String[0] : roomData.split("\\s*,\\s*");
-            int n = Math.min(items.length, 6); // 방 최대 6개
+            int n = Math.min(items.length, 6);
             for (int i = 0; i < 6; i++) {
                 JButton b = lobbyButtons[i / 2][i % 2];
                 if (i < n) {
-                    String item = items[i];
-                    String title = item.replaceFirst("\\s*\\(.*$", "").trim();
-                    b.setText(item);
+                    String itemText = items[i].trim();
+                    String title = itemText.split("\\s+")[0];
+                    boolean isPrivate = itemText.contains("[비밀방]");
+                    
+                    b.setText("<html>" + itemText.replace("[비밀방]", "<font color='red'>[비밀방]</font>") + "</html>");
                     b.setEnabled(true);
                     b.setToolTipText("입장: " + title);
                     b.putClientProperty("roomTitle", title);
+                    b.putClientProperty("isPrivate", isPrivate);
                 } else {
                     b.setText("빈 방");
                     b.setEnabled(false);
                     b.setToolTipText(null);
                     b.putClientProperty("roomTitle", null);
+                    b.putClientProperty("isPrivate", false);
                 }
             }
         });

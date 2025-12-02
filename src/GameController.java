@@ -49,8 +49,16 @@ public class GameController {
         }
     }
 
-    public void createRoom(String roomTitle) { client.sendMessage(Protocol.CREATE_ROOM + " " + roomTitle); }
-    public void joinRoom(String roomName) { client.sendMessage(Protocol.JOIN_ROOM + " " + roomName); }
+    public void createRoom(String title, String password, int maxPlayers) {
+        String payload = String.join("#", title, password, String.valueOf(maxPlayers));
+        client.sendMessage(Protocol.CREATE_ROOM + " " + payload);
+    }
+
+    public void joinRoom(String roomName, String password) {
+        String payload = roomName + "#" + password;
+        client.sendMessage(Protocol.JOIN_ROOM + " " + payload);
+    }
+
     public void sendChatMessage(String message) { client.sendMessage(Protocol.CHAT + " " + message); }
     public void sendReady() { client.sendMessage(Protocol.READY); }
     public void leaveRoom() { client.sendMessage(Protocol.LEAVE_ROOM); }
@@ -139,7 +147,7 @@ public class GameController {
                     ui.showError("닉네임 변경에 실패했습니다: " + payload);
                     break;
                 case Protocol.UPDATE_ROOMLIST:
-                    if (!isInRoom) { // 방에 들어가 있는 동안에는 로비 정보 업데이트 무시
+                    if (!isInRoom) {
                         ui.updateRoomList(payload);
                     }
                     break;
@@ -179,7 +187,7 @@ public class GameController {
                     ui.highlightValidMoves(payload);
                     break;
                 case Protocol.GAME_OVER:
-                    isInRoom = false; // 게임 종료 후 로비로 돌아감
+                    isInRoom = false;
                     ui.handleGameOver(payload);
                     break;
                 case Protocol.UNDO_REQUESTED:
@@ -189,7 +197,6 @@ public class GameController {
                     ui.showError(payload);
                     break;
                 default:
-                    // 알 수 없는 메시지는 현재 위치의 채팅창에 표시
                     if (isInRoom) ui.appendChatMessage(message);
                     else ui.appendLobbyChatMessage(message);
                     break;

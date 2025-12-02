@@ -29,9 +29,6 @@ public class Server {
         }
     }
 
-    /**
-     * 로비에 있는 모든 클라이언트에게 메시지를 브로드캐스트합니다.
-     */
     public static void broadcastToLobby(String message) {
         synchronized (clients) {
             clients.stream()
@@ -40,13 +37,14 @@ public class Server {
         }
     }
 
-    /**
-     * 모든 로비 유저에게 현재 게임 방 목록과 전체 접속자 목록을 브로드캐스트합니다.
-     */
     public static void broadcastRoomList() {
         String roomListStr = gameRooms.values().stream()
-            .map(room -> String.format("%s (%d/2) %s",
-                room.getTitle(), room.getPlayerCount(), room.isGameInProgress() ? "[게임중]" : "[대기중]"))
+            .map(room -> String.format("%s (%d/%d) %s %s",
+                room.getTitle(),
+                room.getPlayerCount(),
+                room.getMaxPlayers(),
+                room.isGameInProgress() ? "[게임중]" : "[대기중]",
+                room.isPrivate() ? "[비밀방]" : ""))
             .collect(Collectors.joining(","));
         
         String userListStr;
@@ -55,13 +53,9 @@ public class Server {
         }
         
         String payload = roomListStr + "|" + userListStr;
-
         broadcastToLobby(Protocol.UPDATE_ROOMLIST + " " + payload);
     }
 
-    /**
-     * 클라이언트 연결 종료 시 호출되어 관련 정보를 정리합니다.
-     */
     public static void removeClient(ClientHandler client) {
         clients.remove(client);
         if (client.getNickname() != null) {
@@ -72,28 +66,21 @@ public class Server {
                 broadcastToLobby(Protocol.SYSTEM + " " + client.getNickname() + "님이 퇴장했습니다.");
             }
         }
-        // 유저가 나갈 때마다 방 목록/인원 수 갱신
         broadcastRoomList();
     }
 
-    public static synchronized boolean isNicknameTaken(String nickname) {
-        return nicknames.contains(nickname);
-    }
+    public static synchronized boolean isNicknameTaken(String nickname) { return nicknames.contains(nickname); }
+    public static synchronized void addNickname(String nickname) { nicknames.add(nickname); }
+    public static synchronized void removeNickname(String nickname) { nicknames.remove(nickname); }
+    public static List<String> getNicknames() { return nicknames; }
 
-    public static synchronized void addNickname(String nickname) {
-        nicknames.add(nickname);
-    }
+    public static void createGameRoom(String payload, ClientHandler host) {
+        String[] parts = payload.split("#", 3);
+        String title = parts[0];
+        String password = parts[1];
+        int maxPlayers = Integer.parseInt(parts[2]);
 
-    public static synchronized void removeNickname(String nickname) {
-        nicknames.remove(nickname);
-    }
-
-    public static List<String> getNicknames() {
-        return nicknames;
-    }
-
-    public static void createGameRoom(String title, ClientHandler host) {
-        if (title == null || title.isBlank()) {
+        if (title.isBlank()) {
             host.sendMessage(Protocol.ERROR + " 방 제목은 비워둘 수 없습니다.");
             return;
         }
@@ -102,17 +89,20 @@ public class Server {
             return;
         }
         
-        GameRoom newRoom = new GameRoom(title, host);
+        GameRoom newRoom = new GameRoom(title, password, maxPlayers, host);
         gameRooms.put(title, newRoom);
         host.setCurrentRoom(newRoom);
-        // host.sendMessage(Protocol.JOIN_SUCCESS + " " + title); // GameRoom 생성자에서 처리하므로 중복
         broadcastRoomList();
     }
 
-    public static void joinGameRoom(String title, ClientHandler player) {
+    public static void joinGameRoom(String payload, ClientHandler player) {
+        String[] parts = payload.split("#", 2);
+        String title = parts[0];
+        String password = (parts.length > 1) ? parts[1] : "";
+
         GameRoom room = gameRooms.get(title);
         if (room != null) {
-            room.addPlayer(player);
+            room.addPlayer(player, password);
         } else {
             player.sendMessage(Protocol.ERROR + " 방 입장 실패: 존재하지 않는 방입니다.");
         }
@@ -123,7 +113,5 @@ public class Server {
         broadcastRoomList();
     }
 
-    public static ConcurrentHashMap<String, GameRoom> getGameRooms() {
-        return gameRooms;
-    }
+    public static ConcurrentHashMap<String, GameRoom> getGameRooms() { return gameRooms; }
 }
