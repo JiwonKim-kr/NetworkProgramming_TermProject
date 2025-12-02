@@ -28,6 +28,9 @@ public class GameUI {
         frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         frame.setSize(800, 800);
 
+        // 초기 메뉴바를 로비 메뉴바로 설정합니다.
+        frame.setJMenuBar(createLobbyMenuBar());
+
         cardLayout = new CardLayout();
         mainPanel = new JPanel(cardLayout);
 
@@ -40,6 +43,39 @@ public class GameUI {
         frame.add(mainPanel);
         frame.setLocationRelativeTo(null);
         frame.setVisible(true);
+    }
+
+    /**
+     * 로비 화면에 표시될 메뉴바를 생성합니다.
+     * @return 로비용 JMenuBar
+     */
+    private JMenuBar createLobbyMenuBar() {
+        JMenuBar menuBar = new JMenuBar();
+        JMenu settingsMenu = new JMenu("환경설정");
+        JMenuItem changeNicknameItem = new JMenuItem("닉네임 변경 (구현 예정)");
+        
+        // 수정: ActionListener를 제거하고, 메뉴 아이템을 비활성화합니다.
+        changeNicknameItem.setEnabled(false);
+        
+        settingsMenu.add(changeNicknameItem);
+        menuBar.add(settingsMenu);
+        return menuBar;
+    }
+
+    /**
+     * 게임방 화면에 표시될 메뉴바를 생성합니다.
+     * @return 게임방용 JMenuBar
+     */
+    private JMenuBar createRoomMenuBar() {
+        JMenuBar menuBar = new JMenuBar();
+        JMenu settingsMenu = new JMenu("환경설정");
+        
+        JMenuItem gameSettingsItem = new JMenuItem("게임 설정 (구현 예정)");
+        gameSettingsItem.setEnabled(false);
+        
+        settingsMenu.add(gameSettingsItem);
+        menuBar.add(settingsMenu);
+        return menuBar;
     }
 
     // --- Public API for Controller ---
@@ -55,13 +91,20 @@ public class GameUI {
 
     public void showLobby() {
         cardLayout.show(mainPanel, "LOBBY");
+        // 로비 화면으로 전환 시, 로비용 메뉴바를 설정합니다.
+        frame.setJMenuBar(createLobbyMenuBar());
+        frame.revalidate();
+        frame.repaint();
         roomPanel.resetRoomUI(); // 방에서 로비로 나올 때 방 UI 초기화
     }
 
     public void enterRoom(String roomTitle) {
         cardLayout.show(mainPanel, "ROOM");
         frame.setTitle("십이장기 - " + roomTitle);
-        
+        // 게임방 화면으로 전환 시, 게임방용 메뉴바를 설정합니다.
+        frame.setJMenuBar(createRoomMenuBar());
+        frame.revalidate();
+        frame.repaint();
     }
 
     public void showError(String message) {
