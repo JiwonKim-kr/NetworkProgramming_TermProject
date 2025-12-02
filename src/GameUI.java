@@ -168,6 +168,10 @@ public class GameUI {
         roomPanel.appendChatMessage(message);
     }
 
+    public void appendLobbyChatMessage(String message) {
+        lobbyPanel.appendChatMessage(message);
+    }
+
     public void updatePlayerStatus(String[] readyInfo) {
         roomPanel.updatePlayerStatus(readyInfo);
     }

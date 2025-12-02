@@ -14,6 +14,8 @@ public class GameRoom {
         this.title = title;
         this.host = host;
         this.currentSession = new GameSession(this, host, null);
+        // 방 생성자에게도 입장 성공 메시지 전송
+        host.sendMessage(Protocol.JOIN_SUCCESS + " " + this.title);
     }
 
     public synchronized void handlePlayerCommand(ClientHandler player, String message) {
@@ -23,16 +25,18 @@ public class GameRoom {
     }
 
     public synchronized void addPlayer(ClientHandler player) {
+        // 중요: 플레이어에게 현재 방이 어디인지 알려준다.
+        player.setCurrentRoom(this);
+        player.sendMessage(Protocol.JOIN_SUCCESS + " " + this.title);
+
         if (this.guest == null) {
             this.guest = player;
             broadcastSystem("SYSTEM: " + player.getNickname() + "님이 GUEST로 입장했습니다.");
-            startNewSession();   // 새 판 시작할 때는 세션 쪽에서 알아서 상태 뿌림
+            startNewSession();
         } else {
             spectators.add(player);
             broadcastSystem("SYSTEM: " + player.getNickname() + "님이 관전자로 입장했습니다.");
 
-            // 🔹 이미 게임 진행 중인 방에 관전자로 들어온 경우:
-            //    지금까지 진행된 상태를 다시 한 번 전원에게 뿌려준다.
             if (isGameInProgress()) {
                 currentSession.broadcastState();
             }
@@ -42,36 +46,62 @@ public class GameRoom {
 
     public synchronized void removePlayer(ClientHandler player) {
         String leavingNickname = player.getNickname();
-        boolean wasPlayer = (player == host || player == guest);
+        boolean wasCorePlayer = (player == host || player == guest);
 
-        // 게임 중에 핵심 플레이어가 나갔을 경우, 게임 세션만 종료
-        if (wasPlayer && isGameInProgress()) {
+        // 1. 나가는 플레이어에게 즉시 로비로 가라고 명령하고, 서버 상태를 업데이트한다.
+        player.setCurrentRoom(null);
+        player.sendMessage(Protocol.GOTO_LOBBY);
+
+        // 2. 게임 중에 핵심 플레이어가 나갔다면, 게임을 중단시킨다.
+        if (wasCorePlayer && isGameInProgress()) {
             currentSession.abortGame("상대방이 퇴장하여 게임이 종료되었습니다.", player);
         }
-        
 
-        // 역할 재할당
+        // 3. 플레이어를 역할 목록에서 제거한다.
         if (player == host) {
-            host = guest;
-            guest = spectators.isEmpty() ? null : spectators.remove(0);
-            if (host != null) broadcastSystem("SYSTEM: 호스트가 " + host.getNickname() + "님으로 변경되었습니다.");
+            host = null;
         } else if (player == guest) {
-            guest = spectators.isEmpty() ? null : spectators.remove(0);
+            guest = null;
         } else {
             spectators.remove(player);
         }
 
-        // 방 상태 최종 결정
-        if (host == null) {
+        // 4. 방이 비었는지 확인하고, 비었다면 즉시 제거하고 종료한다.
+        if (host == null && guest == null && spectators.isEmpty()) {
             Server.removeGameRoom(this.title);
-        } else {
-            if (wasPlayer) {
-                startNewSession(); // 플레이어가 나갔으므로 새 세션 준비
-            }
-            broadcastSystem("SYSTEM: " + leavingNickname + "님이 퇴장했습니다.");
-            Server.broadcastRoomList();
+            return; // 중요: 소멸될 방에 대해 더 이상 작업을 수행하지 않음
         }
+
+        // 5. 방이 비지 않았다면, 역할 승격 및 상태 업데이트를 진행한다.
+        boolean hostChanged = false;
+        if (host == null) {
+            if (guest != null) { // 게스트를 호스트로 승격
+                host = guest;
+                guest = null;
+            } else { // 관전자를 호스트로 승격
+                host = spectators.remove(0);
+            }
+            hostChanged = true;
+        }
+
+        if (guest == null && !spectators.isEmpty()) { // 게스트 자리를 관전자로 채움
+            guest = spectators.remove(0);
+            broadcastSystem("SYSTEM: " + guest.getNickname() + "님이 새로운 GUEST가 되었습니다.");
+        }
+
+        // 6. 남은 인원과 로비에 변경 사항을 알린다.
+        if (hostChanged) {
+            broadcastSystem("SYSTEM: 호스트가 " + host.getNickname() + "님으로 변경되었습니다.");
+        }
+
+        if (wasCorePlayer) { // 핵심 플레이어가 나갔으므로 새 게임 세션을 준비
+            startNewSession();
+        }
+
+        broadcastSystem("SYSTEM: " + leavingNickname + "님이 퇴장했습니다.");
+        Server.broadcastRoomList();
     }
+
 
     public void onSessionFinished(ClientHandler winner) {
         ClientHandler loser = (winner == host) ? guest : host;

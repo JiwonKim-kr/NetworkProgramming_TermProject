@@ -8,6 +8,7 @@ public class GameController {
     private int selectedRow = -1, selectedCol = -1;
     private Piece selectedCapturedPiece = null;
     private boolean isFirstTurnHighlightNeeded = false;
+    private boolean isInRoom = false;
 
     public void start() {
         this.client = new GameClient(this::handleServerMessage);
@@ -124,19 +125,27 @@ public class GameController {
                     ui.showError("닉네임 변경에 실패했습니다: " + payload);
                     break;
                 case Protocol.UPDATE_ROOMLIST:
-                    ui.updateRoomList(payload);
+                    if (!isInRoom) { // 방에 들어가 있는 동안에는 로비 정보 업데이트 무시
+                        ui.updateRoomList(payload);
+                    }
                     break;
                 case Protocol.JOIN_SUCCESS:
+                    isInRoom = true;
                     ui.enterRoom(payload);
                     break;
                 case Protocol.GOTO_LOBBY:
+                    isInRoom = false;
                     ui.showLobby();
                     ui.setTitle("십이장기 - " + client.getNickname());
                     ui.resetRoomUI();
                     break;
                 case Protocol.CHAT:
                 case Protocol.SYSTEM:
-                    ui.appendChatMessage(payload);
+                    if (isInRoom) {
+                        ui.appendChatMessage(payload);
+                    } else {
+                        ui.appendLobbyChatMessage(payload);
+                    }
                     break;
                 case Protocol.PLAYER_READY:
                     ui.updatePlayerStatus(payload.split(" "));
@@ -156,6 +165,7 @@ public class GameController {
                     ui.highlightValidMoves(payload);
                     break;
                 case Protocol.GAME_OVER:
+                    isInRoom = false; // 게임 종료 후 로비로 돌아감
                     ui.handleGameOver(payload);
                     break;
                 case Protocol.UNDO_REQUESTED:
@@ -165,7 +175,9 @@ public class GameController {
                     ui.showError(payload);
                     break;
                 default:
-                    ui.appendChatMessage(message);
+                    // 알 수 없는 메시지는 현재 위치의 채팅창에 표시
+                    if (isInRoom) ui.appendChatMessage(message);
+                    else ui.appendLobbyChatMessage(message);
                     break;
             }
         });

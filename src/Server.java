@@ -41,14 +41,22 @@ public class Server {
     }
 
     /**
-     * 모든 로비 유저에게 현재 게임 방 목록을 브로드캐스트합니다.
+     * 모든 로비 유저에게 현재 게임 방 목록과 전체 접속자 목록을 브로드캐스트합니다.
      */
     public static void broadcastRoomList() {
         String roomListStr = gameRooms.values().stream()
-            .map(room -> String.format("%s (%d/8) %s",
+            .map(room -> String.format("%s (%d/2) %s",
                 room.getTitle(), room.getPlayerCount(), room.isGameInProgress() ? "[게임중]" : "[대기중]"))
             .collect(Collectors.joining(","));
-        broadcastToLobby(Protocol.UPDATE_ROOMLIST + " " + roomListStr);
+        
+        String userListStr;
+        synchronized (nicknames) {
+            userListStr = String.join(",", nicknames);
+        }
+        
+        String payload = roomListStr + "|" + userListStr;
+
+        broadcastToLobby(Protocol.UPDATE_ROOMLIST + " " + payload);
     }
 
     /**
@@ -58,14 +66,14 @@ public class Server {
         clients.remove(client);
         if (client.getNickname() != null) {
             nicknames.remove(client.getNickname());
-            // 클라이언트가 방에 있었다면, 방에서 나가는 처리를 위임
             if (client.getCurrentRoom() != null) {
                 client.getCurrentRoom().removePlayer(client);
             } else {
-                // 로비에 있었다면, 로비에 퇴장 메시지 전송
                 broadcastToLobby(Protocol.SYSTEM + " " + client.getNickname() + "님이 퇴장했습니다.");
             }
         }
+        // 유저가 나갈 때마다 방 목록/인원 수 갱신
+        broadcastRoomList();
     }
 
     public static synchronized boolean isNicknameTaken(String nickname) {
@@ -78,6 +86,10 @@ public class Server {
 
     public static synchronized void removeNickname(String nickname) {
         nicknames.remove(nickname);
+    }
+
+    public static List<String> getNicknames() {
+        return nicknames;
     }
 
     public static void createGameRoom(String title, ClientHandler host) {
@@ -93,19 +105,14 @@ public class Server {
         GameRoom newRoom = new GameRoom(title, host);
         gameRooms.put(title, newRoom);
         host.setCurrentRoom(newRoom);
-        // GameRoom에 진입하는 것은 ClientHandler가 처리, 여기서는 방 목록 갱신만 처리
+        // host.sendMessage(Protocol.JOIN_SUCCESS + " " + title); // GameRoom 생성자에서 처리하므로 중복
         broadcastRoomList();
-        host.sendMessage(Protocol.JOIN_SUCCESS + " " + title);
     }
 
     public static void joinGameRoom(String title, ClientHandler player) {
         GameRoom room = gameRooms.get(title);
         if (room != null) {
-            // 실제 플레이어 추가 로직은 GameRoom에 위임
             room.addPlayer(player);
-            player.setCurrentRoom(room);
-            // TODO: JOIN_SUCCESS 메시지 전송을 GameRoom.addPlayer 내부로 옮겨 일관성 유지 고려
-            player.sendMessage(Protocol.JOIN_SUCCESS + " " + title);
         } else {
             player.sendMessage(Protocol.ERROR + " 방 입장 실패: 존재하지 않는 방입니다.");
         }
