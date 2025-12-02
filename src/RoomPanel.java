@@ -148,6 +148,10 @@ public class RoomPanel extends JPanel {
         chatPanel.appendChatMessage(message);
     }
 
+    public void clearChat() {
+        chatPanel.clearChat();
+    }
+
     public void resetRoomUI() { 
         turnLabel.setBackground(DEFAULT_BG);
         hostStatusLabel.setText(Protocol.HOST + ": NOT READY"); 

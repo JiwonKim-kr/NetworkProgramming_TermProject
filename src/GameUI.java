@@ -132,18 +132,22 @@ public class GameUI {
 
     public void showLobby() {
         cardLayout.show(mainPanel, "LOBBY");
-        // 로비 화면으로 전환 시, 로비용 메뉴바를 설정합니다.
         frame.setJMenuBar(createLobbyMenuBar());
+        
+        roomPanel.clearChat(); // 게임방 채팅창 클리어
+        roomPanel.resetRoomUI(); // 방에서 로비로 나올 때 방 UI 초기화
+
         frame.revalidate();
         frame.repaint();
-        roomPanel.resetRoomUI(); // 방에서 로비로 나올 때 방 UI 초기화
     }
 
     public void enterRoom(String roomTitle) {
         cardLayout.show(mainPanel, "ROOM");
         frame.setTitle("십이장기 - " + roomTitle);
-        // 게임방 화면으로 전환 시, 게임방용 메뉴바를 설정합니다.
         frame.setJMenuBar(createRoomMenuBar());
+
+        lobbyPanel.clearChat(); // 로비 채팅창 클리어
+
         frame.revalidate();
         frame.repaint();
     }

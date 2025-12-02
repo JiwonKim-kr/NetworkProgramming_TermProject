@@ -153,4 +153,8 @@ public class LobbyPanel extends JPanel {
         chatArea.append(message + "\n");
         chatArea.setCaretPosition(chatArea.getDocument().getLength());
     }
+
+    public void clearChat() {
+        chatArea.setText("");
+    }
 }
