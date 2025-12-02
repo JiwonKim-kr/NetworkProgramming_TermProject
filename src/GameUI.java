@@ -83,6 +83,11 @@ public class GameUI {
         // RoomPanel이 ChatPanel을 관리하므로 RoomPanel에 위임
         roomPanel.appendChatMessage(message);
     }
+    
+    public void appendLobbyChat(String message) {
+        lobbyPanel.appendLobbyChatMessage(message);
+    }
+
 
     public void updatePlayerStatus(String[] readyInfo) {
         roomPanel.updatePlayerStatus(readyInfo);
@@ -95,7 +100,11 @@ public class GameUI {
     public void updateGameState(String payload) {
         roomPanel.updateGameState(payload);
     }
-
+    public void showPrivateRoomPasswordDialog(String title) {
+        String pw = JOptionPane.showInputDialog(null, "비밀번호 입력:");
+        if (pw == null) return;
+        controller.joinRoom(title + "|" + pw);
+    }
     public void highlightValidMoves(String payload) {
         roomPanel.highlightValidMoves(payload);
     }
@@ -107,7 +116,9 @@ public class GameUI {
     public void highlightSelectedBoardPiece(int r, int c) {
         roomPanel.highlightSelectedBoardPiece(r, c);
     }
-
+    public void highlightSummonRange(String myRole) {
+        roomPanel.highlightSummonRange(myRole);
+    }
     public void highlightSelectedCapturedPiece(Object sourceButton) {
         roomPanel.highlightSelectedCapturedPiece(sourceButton);
     }
@@ -123,6 +134,7 @@ public class GameUI {
     public boolean isMyTurn() {
         return roomPanel.isMyTurn();
     }
+    
 
     public String getPieceOwnerRole(int r, int c) {
         return roomPanel.getPieceOwnerRole(r, c);

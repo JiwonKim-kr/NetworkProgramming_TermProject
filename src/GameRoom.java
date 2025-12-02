@@ -9,13 +9,23 @@ public class GameRoom {
     private ClientHandler guest;
     private List<ClientHandler> spectators = Collections.synchronizedList(new ArrayList<>());
     private GameSession currentSession;
+    private boolean isPrivate;
+    private String password;
 
-    public GameRoom(String title, ClientHandler host) {
+    public GameRoom(String title, ClientHandler host, boolean isPrivate, String password) {
         this.title = title;
         this.host = host;
+        this.isPrivate = isPrivate;
+        this.password = password;
         this.currentSession = new GameSession(this, host, null);
     }
+    public boolean isPrivateRoom() {
+        return isPrivate;
+    }
 
+    public String getPassword() {
+        return password;
+    }
     public synchronized void handlePlayerCommand(ClientHandler player, String message) {
         if (currentSession != null) {
             currentSession.processCommand(player, message);

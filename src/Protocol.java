@@ -13,7 +13,7 @@ public final class Protocol {
     public static final String UNDO_REQUEST = "UNDO_REQUEST";
     public static final String UNDO_RESPONSE = "UNDO_RESPONSE";
     public static final String CHAT = "CHAT";
-
+    public static final String LOBBY_CHAT = "LOBBY_CHAT";
     // 서버 -> 클라이언트
     public static final String NICKNAME_OK = "NICKNAME_OK";
     public static final String NICKNAME_TAKEN = "NICKNAME_TAKEN";
@@ -29,7 +29,9 @@ public final class Protocol {
     public static final String GAME_OVER = "GAME_OVER";
     public static final String UNDO_REQUESTED = "UNDO_REQUESTED";
     public static final String ERROR = "ERROR";
-    
+    public static final String REQUEST_ROOMINFO = "REQUEST_ROOMINFO";
+    public static final String ROOMINFO_PRIVATE = "ROOMINFO_PRIVATE";
+    public static final String ROOMINFO_PUBLIC = "ROOMINFO_PUBLIC";
     // 플레이어 역할
     public static final String HOST = "HOST";
     public static final String GUEST = "GUEST";

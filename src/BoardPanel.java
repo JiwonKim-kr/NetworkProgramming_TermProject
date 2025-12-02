@@ -20,7 +20,7 @@ public class BoardPanel extends JPanel {
     private static final Color HIGHLIGHT_SELECTED_PIECE = Color.RED;
     private static final Color HIGHLIGHT_CAPTURED_PIECE = Color.GREEN;
     private static final Color HIGHLIGHT_FIRST_TURN = Color.CYAN;
-    
+    private final java.util.List<Point> highlightedCells = new java.util.ArrayList<>();
     private final Map<Piece, ImageIcon> pieceIcons = new EnumMap<>(Piece.class);
 
     public BoardPanel(GameController controller) {
@@ -57,15 +57,15 @@ public class BoardPanel extends JPanel {
         String role = controller.getPlayerRole();
         return role == null || role.equals(Protocol.P1);
     }
-
+    
     // --- Public API ---
     public void setMyTurn(boolean myTurn) { this.myTurn = myTurn; }
     public boolean isMyTurn() { return myTurn; }
     public String getPieceOwnerRole(int r, int c) { Piece piece = boardState[r][c]; return (piece != null) ? piece.getOwner().name() : null; }
     public boolean isValidMove(int r, int c) { return validMoveCells.stream().anyMatch(m -> m[0] == r && m[1] == c); }
-
+    
     public void updateBoard(String boardStateStr) {
-        clearHighlights(true);
+        
         for (int r = 0; r < 4; r++) {
             for (int c = 0; c < 3; c++) {
                 boardButtons[r][c].setIcon(null);
@@ -87,13 +87,13 @@ public class BoardPanel extends JPanel {
             boolean isOpponent = (piece.getOwner() == Piece.Player.P1) != isP1();
             ImageIcon icon = getPieceIcon(piece, btn, isOpponent);
             btn.setIcon(icon);
-        }
+        }clearHighlights(true);
     }
 
     public void updateCapturedPieces(JPanel myPanel, JPanel opponentPanel, String p1CapturedStr, String p2CapturedStr) {
         myPanel.removeAll();
         opponentPanel.removeAll();
-
+        
         String myCapturedStr = isP1() ? p1CapturedStr : p2CapturedStr;
         String opponentCapturedStr = isP1() ? p2CapturedStr : p1CapturedStr;
 
@@ -169,6 +169,22 @@ public class BoardPanel extends JPanel {
             validMoveCells.add(new int[]{r, c});
         }
     }
+    public void highlightSummonRange() {
+        clearHighlights(false);
+
+        for (int r = 1; r <= 3; r++) {
+            for (int c = 0; c < 3; c++) {
+             if (getPieceOwnerRole(r, c) == null) {
+
+                    int[] view = modelToView(r, c);
+                    boardButtons[view[0]][view[1]].setBackground(Color.YELLOW);
+
+                    highlightedCells.add(new Point(view[0], view[1]));
+                }
+            }
+        }
+    }
+
     
     public void highlightSelectedBoardPiece(int r, int c) { 
         int[] viewCoords = modelToView(r, c);
@@ -203,6 +219,10 @@ public class BoardPanel extends JPanel {
             int[] viewCoords = modelToView(cell[0], cell[1]);
             boardButtons[viewCoords[0]][viewCoords[1]].setBackground(UIManager.getColor("Button.background"));
         }
+        for (Point p : highlightedCells) {
+            boardButtons[p.x][p.y].setBackground(UIManager.getColor("Button.background"));
+        }
+        highlightedCells.clear();
         initialHighlightCells.clear();
     }
 

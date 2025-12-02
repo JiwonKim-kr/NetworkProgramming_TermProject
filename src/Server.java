@@ -45,9 +45,10 @@ public class Server {
      */
     public static void broadcastRoomList() {
         String roomListStr = gameRooms.values().stream()
-            .map(room -> String.format("%s (%d/8) %s",
-                room.getTitle(), room.getPlayerCount(), room.isGameInProgress() ? "[게임중]" : "[대기중]"))
-            .collect(Collectors.joining(","));
+        .map(room -> String.format("%s (%d/8) %s",
+        	room.getTitle(), room.getPlayerCount(), room.isGameInProgress() ? "[게임중]" : "[대기중]"))
+        	.collect(Collectors.joining(","));
+
         broadcastToLobby(Protocol.UPDATE_ROOMLIST + " " + roomListStr);
     }
 
@@ -76,8 +77,18 @@ public class Server {
         nicknames.add(nickname);
     }
 
-    public static void createGameRoom(String title, ClientHandler host) {
-        if (title == null || title.isBlank()) {
+    public static void createGameRoom(String payload, ClientHandler host) {
+    	
+
+    	String[] p = payload.split("\\|");
+
+    	String title     = p.length > 0 ? p[0] : "";
+    	boolean isPrivate = p.length > 1 && p[1].equals("1");
+    	String password   = p.length > 2 ? p[2] : "";
+
+
+        GameRoom newRoom = new GameRoom(title, host, isPrivate, password);
+    	if (title == null || title.isBlank()) {
             host.sendMessage(Protocol.ERROR + " 방 제목은 비워둘 수 없습니다.");
             return;
         }
@@ -85,26 +96,31 @@ public class Server {
             host.sendMessage(Protocol.ERROR + " 방 생성 실패: 이미 존재하는 방 제목입니다.");
             return;
         }
-        
-        GameRoom newRoom = new GameRoom(title, host);
-        gameRooms.put(title, newRoom);
+
+        gameRooms.put(title, newRoom);	
         host.setCurrentRoom(newRoom);
         // GameRoom에 진입하는 것은 ClientHandler가 처리, 여기서는 방 목록 갱신만 처리
         broadcastRoomList();
         host.sendMessage(Protocol.JOIN_SUCCESS + " " + title);
     }
 
-    public static void joinGameRoom(String title, ClientHandler player) {
+    public static void joinGameRoom(String payload, ClientHandler player) {
+
+        String[] p = payload.split("\\|");
+        String title = p[0];
+        String pw = (p.length > 1) ? p[1] : "";
+
         GameRoom room = gameRooms.get(title);
-        if (room != null) {
-            // 실제 플레이어 추가 로직은 GameRoom에 위임
-            room.addPlayer(player);
-            player.setCurrentRoom(room);
-            // TODO: JOIN_SUCCESS 메시지 전송을 GameRoom.addPlayer 내부로 옮겨 일관성 유지 고려
-            player.sendMessage(Protocol.JOIN_SUCCESS + " " + title);
-        } else {
-            player.sendMessage(Protocol.ERROR + " 방 입장 실패: 존재하지 않는 방입니다.");
+        if (room.isPrivateRoom()) {
+            if (!room.getPassword().equals(pw)) {
+                player.sendMessage(Protocol.ERROR + " 비밀번호가 틀렸습니다.");
+                return;
+            }
         }
+
+        room.addPlayer(player);
+        player.setCurrentRoom(room);
+        player.sendMessage(Protocol.JOIN_SUCCESS + " " + title);
     }
 
     public static void removeGameRoom(String title) {
@@ -114,5 +130,8 @@ public class Server {
 
     public static ConcurrentHashMap<String, GameRoom> getGameRooms() {
         return gameRooms;
+    }
+    public static GameRoom getRoom(String title) {
+        return gameRooms.get(title);
     }
 }

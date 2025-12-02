@@ -68,17 +68,46 @@ public class RoomPanel extends JPanel {
         
         return northContainer;
     }
-
     private JPanel createBottomPanel() {
         p1CapturedPanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
         p1CapturedPanel.setBorder(BorderFactory.createTitledBorder("내가 잡은 말"));
         p1CapturedPanel.setPreferredSize(new Dimension(0, 60));
         return p1CapturedPanel;
     }
+    
+    public void highlightSummonRange(String myRole) {
 
-    // --- Public API for UI Updates (GameUI로부터 위임받음) ---
+        int frontRow = -1;
 
+        for (int r = 0; r < 9; r++) {
+            for (int c = 0; c < 7; c++) {
+                String owner = getPieceOwnerRole(r, c);
+                if (owner != null && owner.equals(myRole)) {
+                    frontRow = r;
+                    break;
+                }
+            }
+            if (frontRow != -1)
+                break;
+        }
+
+        if (frontRow == -1)
+            return;
+
+        for (int r = frontRow; r < 9; r++) {
+            for (int c = 0; c < 7; c++) {
+                if (isEmptyCell(r, c)) {
+                    highlightSelectedBoardPiece(r, c);
+                }
+            }
+        }
+    }
+
+    private boolean isEmptyCell(int r, int c) {
+        return getPieceOwnerRole(r, c) == null;
+    }
     public void updatePlayerStatus(String[] readyInfo) { 
+    	boardPanel.clearHighlights(false);
         String playerRole = readyInfo[0]; 
         boolean isReady = Boolean.parseBoolean(readyInfo[1]); 
         JLabel targetLabel = playerRole.equals(Protocol.HOST) ? hostStatusLabel : guestStatusLabel;
@@ -92,6 +121,7 @@ public class RoomPanel extends JPanel {
     }
 
     public void updateGameState(String payload) {
+    	boardPanel.clearHighlights(false);
         String[] stateParts = payload.split("\\|", 4);
         boardPanel.updateBoard(stateParts[0]);
         if (stateParts.length > 2) {
@@ -116,6 +146,8 @@ public class RoomPanel extends JPanel {
 
     public void highlightSelectedCapturedPiece(Object sourceButton) {
         boardPanel.highlightSelectedCapturedPiece(sourceButton);
+        boardPanel.highlightSummonRange();
+        
     }
 
     public void highlightPlayerPieces(String playerRole) {
@@ -125,7 +157,7 @@ public class RoomPanel extends JPanel {
     public void clearHighlights(boolean clearSelection) {
         boardPanel.clearHighlights(clearSelection);
     }
-
+    
     public boolean isMyTurn() {
         return boardPanel.isMyTurn();
     }
@@ -160,6 +192,7 @@ public class RoomPanel extends JPanel {
         p2CapturedPanel.removeAll();
         p2CapturedPanel.revalidate();
         p2CapturedPanel.repaint();
+        chatPanel.resetChat();
     }
 
     private void applyTurnBackground(boolean isMyTurn) {
