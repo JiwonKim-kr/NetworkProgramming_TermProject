@@ -75,17 +75,7 @@ public class ClientHandler extends Thread implements PlayerConnection {
                     String chatMsg = nickname + ": " + payload;
                     Server.broadcastToLobby(Protocol.LOBBY_CHAT + " " + chatMsg);
                     break;	
-                case Protocol.REQUEST_ROOMINFO:
-                	GameRoom r = Server.getRoom(payload);
-                    if (r == null) {
-                        sendMessage(Protocol.ERROR + " 방이 없습니다.");
-                        break;
-                    }
-                    if (r.isPrivateRoom())
-                        sendMessage(Protocol.ROOMINFO_PRIVATE + " " + payload);
-                    else
-                        sendMessage(Protocol.ROOMINFO_PUBLIC + " " + payload);
-                    break;
+                
                 case Protocol.CHANGE_NICKNAME:
                     handleChangeNickname(payload);
                     break;
