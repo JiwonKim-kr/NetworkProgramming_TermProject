@@ -21,6 +21,52 @@ public class LobbyPanel extends JPanel {
         this.add(mainContentPanel, BorderLayout.CENTER);
         this.add(createSideInfoPanel(), BorderLayout.EAST);
     }
+    private JPanel createChatPanel() {
+        JPanel panel = new JPanel(new BorderLayout(5, 5));
+
+        JLabel title = new JLabel("로비 채팅", SwingConstants.CENTER);
+        panel.add(title, BorderLayout.NORTH);
+
+        chatArea = new JTextArea();
+        chatArea.setEditable(false);
+        chatArea.setLineWrap(true);
+        chatArea.setWrapStyleWord(true);
+
+        JScrollPane scroll = new JScrollPane(chatArea);
+        panel.add(scroll, BorderLayout.CENTER);
+
+        chatInput = new JTextField();
+        JButton sendButton = new JButton("전송");
+
+        Runnable sendAction = () -> {
+            String text = chatInput.getText().trim();
+            if (!text.isEmpty()) {
+                controller.sendLobbyChat(text);  // ★ GameController로 넘김
+                chatInput.setText("");
+            }
+        };
+
+        chatInput.addActionListener(e -> sendAction.run());
+        sendButton.addActionListener(e -> sendAction.run());
+
+        JPanel inputPanel = new JPanel(new BorderLayout(5, 5));
+        inputPanel.add(chatInput, BorderLayout.CENTER);
+        inputPanel.add(sendButton, BorderLayout.EAST);
+
+        panel.add(inputPanel, BorderLayout.SOUTH);
+        panel.setPreferredSize(new Dimension(250, 0)); // 오른쪽 폭
+
+        return panel;
+    }
+    public void appendLobbyChatMessage(String msg) {
+        SwingUtilities.invokeLater(() -> {
+            chatArea.append(msg + "\n");
+            chatArea.setCaretPosition(chatArea.getDocument().getLength());
+        });
+    }
+    private JComponent createCenterPanel() {
+        JScrollPane roomScroll = createLobbyGrid();   // 기존 방 목록 그대로 사용
+        JPanel chatPanel = createChatPanel();    // 오른쪽 채팅창
 
     private JPanel createLobbyGridPanel() {
         JPanel panel = new JPanel(new BorderLayout(10, 10));
@@ -60,6 +106,7 @@ public class LobbyPanel extends JPanel {
     private JPanel createBottomButtonPanel() {
         JPanel panel = new JPanel();
         JButton createRoomButton = new JButton("방 만들기");
+
         createRoomButton.addActionListener(e -> {
             CreateRoomDialogPanel dialogPanel = new CreateRoomDialogPanel();
             int result = JOptionPane.showConfirmDialog(this, dialogPanel, "방 만들기", JOptionPane.OK_CANCEL_OPTION, JOptionPane.PLAIN_MESSAGE);
@@ -75,6 +122,7 @@ public class LobbyPanel extends JPanel {
                 }
             }
         });
+
         panel.add(createRoomButton);
         return panel;
     }

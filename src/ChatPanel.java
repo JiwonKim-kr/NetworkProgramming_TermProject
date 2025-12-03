@@ -37,4 +37,7 @@ public class ChatPanel extends JPanel {
     public void clearChat() {
         chatArea.setText("");
     }
+    public void resetChat() {
+        chatArea.setText("");
+    }
 }

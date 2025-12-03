@@ -106,6 +106,10 @@ public class Server {
         } else {
             player.sendMessage(Protocol.ERROR + " 방 입장 실패: 존재하지 않는 방입니다.");
         }
+
+        room.addPlayer(player);
+        player.setCurrentRoom(room);
+        player.sendMessage(Protocol.JOIN_SUCCESS + " " + title);
     }
 
     public static void removeGameRoom(String title) {

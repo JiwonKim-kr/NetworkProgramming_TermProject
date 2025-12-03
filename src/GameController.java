@@ -64,13 +64,16 @@ public class GameController {
     public void leaveRoom() { client.sendMessage(Protocol.LEAVE_ROOM); }
     public void requestUndo() { client.sendMessage(Protocol.UNDO_REQUEST); }
     public void respondUndo(boolean accepted) { client.sendMessage(Protocol.UNDO_RESPONSE + " " + accepted); }
-
+    public void requestRoomInfo(String title) {
+        client.sendMessage(Protocol.REQUEST_ROOMINFO + " " + title);
+    }
     public void onBoardClicked(int r, int c) {
         if (!ui.isMyTurn()) return;
-
+        
         if (selectedCapturedPiece != null) {
             client.sendMessage(String.format("%s %s %d %d", Protocol.PLACE, selectedCapturedPiece.name(), r, c));
             clearSelections();
+            
             return;
         }
 
@@ -121,6 +124,9 @@ public class GameController {
     public String getPlayerRole() {
         return client.getPlayerRole();
     }
+    public void sendLobbyChat(String text) {
+        client.sendMessage(Protocol.LOBBY_CHAT + " " + text);
+    }
 
     // --- Server Messages ---
     private void handleServerMessage(String message) {
@@ -150,6 +156,9 @@ public class GameController {
                     if (!isInRoom) {
                         ui.updateRoomList(payload);
                     }
+                    break;
+                case Protocol.LOBBY_CHAT:                
+                    ui.appendLobbyChat(payload);
                     break;
                 case Protocol.JOIN_SUCCESS:
                     isInRoom = true;
@@ -183,6 +192,12 @@ public class GameController {
                         isFirstTurnHighlightNeeded = false;
                     }
                     break;
+                case Protocol.ROOMINFO_PRIVATE:
+                    ui.showPrivateRoomPasswordDialog(payload);
+                    break;
+                case Protocol.ROOMINFO_PUBLIC:
+                    joinRoom(payload);
+                    break;    
                 case Protocol.VALID_MOVES:
                     ui.highlightValidMoves(payload);
                     break;

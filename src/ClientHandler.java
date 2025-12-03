@@ -11,7 +11,7 @@ public class ClientHandler extends Thread implements PlayerConnection {
     private BufferedReader in;
     private String nickname;
     private GameRoom currentRoom = null;
-
+    
     public ClientHandler(Socket socket) {
         this.clientSocket = socket;
     }
@@ -71,8 +71,20 @@ public class ClientHandler extends Thread implements PlayerConnection {
                 case Protocol.JOIN_ROOM:
                     Server.joinGameRoom(payload, this);
                     break;
-                case Protocol.CHAT:
-                    Server.broadcastToLobby(Protocol.CHAT + " [로비] " + nickname + ": " + payload);
+                case Protocol.LOBBY_CHAT:
+                    String chatMsg = nickname + ": " + payload;
+                    Server.broadcastToLobby(Protocol.LOBBY_CHAT + " " + chatMsg);
+                    break;	
+                case Protocol.REQUEST_ROOMINFO:
+                	GameRoom r = Server.getRoom(payload);
+                    if (r == null) {
+                        sendMessage(Protocol.ERROR + " 방이 없습니다.");
+                        break;
+                    }
+                    if (r.isPrivateRoom())
+                        sendMessage(Protocol.ROOMINFO_PRIVATE + " " + payload);
+                    else
+                        sendMessage(Protocol.ROOMINFO_PUBLIC + " " + payload);
                     break;
                 case Protocol.CHANGE_NICKNAME:
                     handleChangeNickname(payload);

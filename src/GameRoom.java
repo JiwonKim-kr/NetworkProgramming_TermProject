@@ -11,16 +11,26 @@ public class GameRoom {
     private ClientHandler guest;
     private List<ClientHandler> spectators = Collections.synchronizedList(new ArrayList<>());
     private GameSession currentSession;
+    private boolean isPrivate;
+    private String password;
 
     public GameRoom(String title, String password, int maxPlayers, ClientHandler host) {
         this.title = title;
         this.password = password;
         this.maxPlayers = maxPlayers;
         this.host = host;
+        this.isPrivate = isPrivate;
+        this.password = password;
         this.currentSession = new GameSession(this, host, null);
         host.sendMessage(Protocol.JOIN_SUCCESS + " " + this.title);
     }
+    public boolean isPrivateRoom() {
+        return isPrivate;
+    }
 
+    public String getPassword() {
+        return password;
+    }
     public synchronized void handlePlayerCommand(ClientHandler player, String message) {
         if (currentSession != null) {
             currentSession.processCommand(player, message);

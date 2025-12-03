@@ -75,6 +75,11 @@ public class GameUI {
         menuBar.add(settingsMenu);
         return menuBar;
     }
+    
+    public void appendLobbyChat(String message) {
+        lobbyPanel.appendLobbyChatMessage(message);
+    }
+
 
     private void showRulebook() {
         JTextArea ruleText = new JTextArea(20, 50);
@@ -99,6 +104,16 @@ public class GameUI {
         }
     }
 
+    public void updateGameState(String payload) {
+        roomPanel.updateGameState(payload);
+    }
+    public void showPrivateRoomPasswordDialog(String title) {
+        String pw = JOptionPane.showInputDialog(null, "비밀번호 입력:");
+        if (pw == null) return;
+        controller.joinRoom(title + "|" + pw);
+    }
+    public void highlightValidMoves(String payload) {
+        roomPanel.highlightValidMoves(payload);
     // --- Panel Switching ---
 
     public void showLobby() {
@@ -118,6 +133,11 @@ public class GameUI {
         frame.revalidate();
         frame.repaint();
     }
+    public void highlightSummonRange(String myRole) {
+        roomPanel.highlightSummonRange(myRole);
+    }
+    public void highlightSelectedCapturedPiece(Object sourceButton) {
+        roomPanel.highlightSelectedCapturedPiece(sourceButton);
 
     public void showReplay(File replayFile) {
         replayPanel.loadReplay(replayFile);
@@ -138,6 +158,7 @@ public class GameUI {
     public void setTitle(String title) {
         frame.setTitle(title);
     }
+    
 
     public void showError(String message) {
         JOptionPane.showMessageDialog(frame, message, "오류", JOptionPane.ERROR_MESSAGE);
