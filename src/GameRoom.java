@@ -12,7 +12,7 @@ public class GameRoom {
     private List<ClientHandler> spectators = Collections.synchronizedList(new ArrayList<>());
     private GameSession currentSession;
     private boolean isPrivate;
-    private String password;
+    
 
     public GameRoom(String title, String password, int maxPlayers, ClientHandler host) {
         this.title = title;

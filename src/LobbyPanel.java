@@ -8,7 +8,7 @@ public class LobbyPanel extends JPanel {
     private DefaultListModel<String> userListModel;
     private JTextArea chatArea;
     private JTextField chatInputField;
-
+    private JTextField chatInput;
     public LobbyPanel(GameController controller) {
         this.controller = controller;
         this.setLayout(new BorderLayout(10, 10));
@@ -64,10 +64,7 @@ public class LobbyPanel extends JPanel {
             chatArea.setCaretPosition(chatArea.getDocument().getLength());
         });
     }
-    private JComponent createCenterPanel() {
-        JScrollPane roomScroll = createLobbyGrid();   // 기존 방 목록 그대로 사용
-        JPanel chatPanel = createChatPanel();    // 오른쪽 채팅창
-
+    
     private JPanel createLobbyGridPanel() {
         JPanel panel = new JPanel(new BorderLayout(10, 10));
         panel.add(new JLabel("대기실 목록", SwingConstants.CENTER), BorderLayout.NORTH);

@@ -192,12 +192,7 @@ public class GameController {
                         isFirstTurnHighlightNeeded = false;
                     }
                     break;
-                case Protocol.ROOMINFO_PRIVATE:
-                    ui.showPrivateRoomPasswordDialog(payload);
-                    break;
-                case Protocol.ROOMINFO_PUBLIC:
-                    joinRoom(payload);
-                    break;    
+                
                 case Protocol.VALID_MOVES:
                     ui.highlightValidMoves(payload);
                     break;

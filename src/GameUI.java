@@ -104,16 +104,6 @@ public class GameUI {
         }
     }
 
-    public void updateGameState(String payload) {
-        roomPanel.updateGameState(payload);
-    }
-    public void showPrivateRoomPasswordDialog(String title) {
-        String pw = JOptionPane.showInputDialog(null, "비밀번호 입력:");
-        if (pw == null) return;
-        controller.joinRoom(title + "|" + pw);
-    }
-    public void highlightValidMoves(String payload) {
-        roomPanel.highlightValidMoves(payload);
     // --- Panel Switching ---
 
     public void showLobby() {
@@ -133,12 +123,7 @@ public class GameUI {
         frame.revalidate();
         frame.repaint();
     }
-    public void highlightSummonRange(String myRole) {
-        roomPanel.highlightSummonRange(myRole);
-    }
-    public void highlightSelectedCapturedPiece(Object sourceButton) {
-        roomPanel.highlightSelectedCapturedPiece(sourceButton);
-
+    
     public void showReplay(File replayFile) {
         replayPanel.loadReplay(replayFile);
         cardLayout.show(mainPanel, "REPLAY");
@@ -170,7 +155,7 @@ public class GameUI {
     }
 
     // --- UI Update Delegation ---
-
+    public void highlightSummonRange(String myRole) {roomPanel.highlightSummonRange(myRole);}
     public void updateRoomList(String payload) { lobbyPanel.updateRoomList(payload); }
     public void appendChatMessage(String message) { roomPanel.appendChatMessage(message); }
     public void appendLobbyChatMessage(String message) { lobbyPanel.appendChatMessage(message); }

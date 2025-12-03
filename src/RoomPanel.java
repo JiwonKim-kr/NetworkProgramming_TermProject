@@ -132,7 +132,6 @@ public class RoomPanel extends JPanel {
 
     public void updateGameState(String payload) {
     	boardPanel.clearHighlights(false);
-        String[] stateParts = payload.split("\\|", 4);
         boardPanel.setPlayerRoleForView(controller.getPlayerRole());
 
         String[] parts = payload.split("#", 2);
