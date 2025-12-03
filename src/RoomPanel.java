@@ -87,31 +87,24 @@ public class RoomPanel extends JPanel {
     
     public void highlightSummonRange(String myRole) {
 
-        int frontRow = -1;
-
-        for (int r = 0; r < 9; r++) {
-            for (int c = 0; c < 7; c++) {
-                String owner = getPieceOwnerRole(r, c);
-                if (owner != null && owner.equals(myRole)) {
-                    frontRow = r;
-                    break;
-                }
-            }
-            if (frontRow != -1)
-                break;
-        }
+        int frontRow = 1;  
 
         if (frontRow == -1)
             return;
 
-        for (int r = frontRow; r < 9; r++) {
-            for (int c = 0; c < 7; c++) {
+        // 🔥 2행(1) ~ 4행(3) 까지만 검사
+        for (int r = frontRow; r <= 3; r++) {
+            for (int c = 0; c < 3; c++) {
+
                 if (isEmptyCell(r, c)) {
+
+                    // 기존 highlightSelectedBoardPiece 유지
                     highlightSelectedBoardPiece(r, c);
                 }
             }
         }
     }
+
 
     private boolean isEmptyCell(int r, int c) {
         return getPieceOwnerRole(r, c) == null;
