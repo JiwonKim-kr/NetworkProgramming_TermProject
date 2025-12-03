@@ -50,6 +50,7 @@ public class ClientHandler extends Thread implements PlayerConnection {
                 sendMessage(Protocol.NICKNAME_OK);
                 Server.broadcastToLobby(Protocol.SYSTEM + " " + nickname + "님이 로비에 입장했습니다.");
                 sendRoomList();
+                Server.broadcastRoomList(); // 새로운 유저 입장을 모두에게 알림
                 return true;
             } else {
                 sendMessage(Protocol.NICKNAME_TAKEN);
@@ -85,6 +86,9 @@ public class ClientHandler extends Thread implements PlayerConnection {
                     else
                         sendMessage(Protocol.ROOMINFO_PUBLIC + " " + payload);
                     break;
+                case Protocol.CHANGE_NICKNAME:
+                    handleChangeNickname(payload);
+                    break;
             }
         } else { // In Room
             switch (command) {
@@ -93,9 +97,6 @@ public class ClientHandler extends Thread implements PlayerConnection {
                     break;
                 case Protocol.LEAVE_ROOM:
                     currentRoom.removePlayer(this);
-                    this.currentRoom = null;
-                    sendMessage(Protocol.GOTO_LOBBY);
-                    sendRoomList();
                     break;
                 default: // Game commands (READY, MOVE, PLACE, UNDO_REQUEST, etc.)
                     currentRoom.handlePlayerCommand(this, message);
@@ -104,12 +105,37 @@ public class ClientHandler extends Thread implements PlayerConnection {
         }
     }
 
+    private void handleChangeNickname(String newNickname) {
+        if (newNickname == null || newNickname.trim().isEmpty()) {
+            sendMessage(Protocol.NICKNAME_CHANGE_FAILED + " 닉네임은 비워둘 수 없습니다.");
+            return;
+        }
+
+        if (Server.isNicknameTaken(newNickname)) {
+            sendMessage(Protocol.NICKNAME_CHANGE_FAILED + " 이미 사용 중인 닉네임입니다.");
+            return;
+        }
+
+        String oldNickname = this.nickname;
+        Server.removeNickname(oldNickname);
+        this.nickname = newNickname;
+        Server.addNickname(newNickname);
+
+        sendMessage(Protocol.NICKNAME_CHANGED_OK + " " + newNickname);
+        Server.broadcastToLobby(Protocol.SYSTEM + " " + oldNickname + "님이 " + newNickname + "(으)로 닉네임을 변경했습니다.");
+        Server.broadcastRoomList(); // 닉네임 변경 시 모든 로비 유저의 목록을 갱신
+    }
+
+
     public void sendRoomList() {
         String roomListStr = Server.getGameRooms().values().stream()
-            .map(room -> String.format("%s (%d/8) %s",
+            .map(room -> String.format("%s (%d/2) %s",
                 room.getTitle(), room.getPlayerCount(), room.isGameInProgress() ? "[게임중]" : "[대기중]"))
             .collect(Collectors.joining(","));
-        sendMessage(Protocol.UPDATE_ROOMLIST + " " + roomListStr);
+        
+        String userListStr = String.join(",", Server.getNicknames());
+        String payload = roomListStr + "|" + userListStr;
+        sendMessage(Protocol.UPDATE_ROOMLIST + " " + payload);
     }
 
     private void cleanup() {

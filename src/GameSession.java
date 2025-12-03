@@ -104,7 +104,6 @@ public class GameSession {
 
             if (gameLogic.handleMove(getPlayerRole(player), fromR, fromC, toR, toC)) {
                 if (gameLogic.getGameState() == GameLogic.GameState.GAME_OVER) {
-                    // 수정: 자연스러운 게임 종료 시에만 onSessionFinished 호출
                     naturalEndGame(player, player.getNickname() + "님이 상대 왕을 잡아 승리했습니다!");
                 } else {
                     checkKingInOpponentZone();
@@ -191,7 +190,6 @@ public class GameSession {
 
     private void checkKingInOpponentZone() {
         if (kingInZonePlayer != null && kingInZonePlayer == gameLogic.getCurrentPlayer()) {
-            // 수정: 자연스러운 게임 종료 시에만 onSessionFinished 호출
             naturalEndGame(getClient(kingInZonePlayer), kingInZonePlayer.name() + "님이 왕을 상대 진영에서 한 턴 생존시켜 승리했습니다!");
             return;
         }
@@ -205,7 +203,6 @@ public class GameSession {
         else kingInZonePlayer = null;
     }
 
-    // 플레이어 퇴장 등 갑작스러운 종료를 위한 메소드
     public void abortGame(String reason) {
         gameRoom.broadcastSystem("GAME_OVER " + reason);
         saveReplay();
@@ -215,7 +212,6 @@ public class GameSession {
         saveReplay();
     }
 
-    // 왕을 잡거나, 왕이 생존하는 등 자연스러운 종료를 위한 메소드
     private void naturalEndGame(ClientHandler winner, String reason) {
         gameRoom.broadcastSystem("GAME_OVER " + reason);
         saveReplay();
@@ -236,9 +232,10 @@ public class GameSession {
 
         String p1Captured = gameLogic.getBoard().getP1Captured().stream().map(Enum::name).collect(Collectors.joining(","));
         String p2Captured = gameLogic.getBoard().getP2Captured().stream().map(Enum::name).collect(Collectors.joining(","));
+        String moveHistoryStr = String.join(" ", gameLogic.getMoveHistory());
 
-        String statePayload = String.format("%s|%s|%s|%s",
-                boardStr.toString(), p1Captured, p2Captured, gameLogic.getCurrentPlayer().name());
+        String statePayload = String.format("%s|%s|%s|%s#%s",
+                boardStr.toString(), p1Captured, p2Captured, gameLogic.getCurrentPlayer().name(), moveHistoryStr);
 
         gameRoom.broadcastSystem("UPDATE_STATE " + statePayload);
     }

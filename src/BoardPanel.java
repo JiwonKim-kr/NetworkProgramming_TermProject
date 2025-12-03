@@ -14,6 +14,7 @@ public class BoardPanel extends JPanel {
     private final List<int[]> validMoveCells = new ArrayList<>();
     private final List<int[]> initialHighlightCells = new ArrayList<>();
     private boolean myTurn = false;
+    private String playerRoleForView = Protocol.P1; // 기본 시점은 P1
 
     private static final Font DEFAULT_FONT = new Font("맑은 고딕", Font.BOLD, 24);
     private static final Color HIGHLIGHT_VALID_MOVE = Color.YELLOW;
@@ -36,8 +37,10 @@ public class BoardPanel extends JPanel {
                 final int viewRow = r;
                 final int viewCol = c;
                 boardButtons[r][c].addActionListener(e -> {
-                    int[] modelCoords = viewToModel(viewRow, viewCol);
-                    controller.onBoardClicked(modelCoords[0], modelCoords[1]);
+                    if (controller != null) { // 리플레이 시 controller가 null일 수 있음
+                        int[] modelCoords = viewToModel(viewRow, viewCol);
+                        controller.onBoardClicked(modelCoords[0], modelCoords[1]);
+                    }
                 });
                 this.add(boardButtons[r][c]);
             }
@@ -54,11 +57,16 @@ public class BoardPanel extends JPanel {
     }
 
     private boolean isP1() {
-        String role = controller.getPlayerRole();
-        return role == null || role.equals(Protocol.P1);
+        return playerRoleForView.equals(Protocol.P1);
     }
     
     // --- Public API ---
+    public void setPlayerRoleForView(String role) {
+        if (role != null && (role.equals(Protocol.P1) || role.equals(Protocol.P2))) {
+            this.playerRoleForView = role;
+        }
+    }
+
     public void setMyTurn(boolean myTurn) { this.myTurn = myTurn; }
     public boolean isMyTurn() { return myTurn; }
     public String getPieceOwnerRole(int r, int c) { Piece piece = boardState[r][c]; return (piece != null) ? piece.getOwner().name() : null; }
@@ -111,30 +119,20 @@ public class BoardPanel extends JPanel {
         Arrays.stream(capturedStr.split(","))
               .map(String::trim)
               .filter(s -> !s.isEmpty())
-              .map(Piece::valueOf)   // 문자열 → Piece
+              .map(Piece::valueOf)
               .forEach(piece -> {
-                  // 캡쳐 말용 버튼
                   JButton pieceButton = new JButton();
-
-                  // 🔹 버튼 자체 크기(스케일) 줄이기
                   pieceButton.setPreferredSize(new Dimension(36, 36));
-
-                  // 내 패널: 내 말 → 보드랑 같은 방향
-                  // 상대 패널: 상대 말 → 180도 뒤집어서 표시
                   boolean rotate180 = !isMyPanel;
-
                   ImageIcon baseIcon = getPieceIcon(piece, pieceButton, rotate180);
 
                   if (baseIcon != null) {
                       int iw = baseIcon.getIconWidth();
                       int ih = baseIcon.getIconHeight();
-                      int scaledW = (int)(iw * 0.9);   // 90%로 축소
+                      int scaledW = (int)(iw * 0.9);
                       int scaledH = (int)(ih * 0.9);
-
-                      Image scaledImg = baseIcon.getImage()
-                                                .getScaledInstance(scaledW, scaledH, Image.SCALE_SMOOTH);
+                      Image scaledImg = baseIcon.getImage().getScaledInstance(scaledW, scaledH, Image.SCALE_SMOOTH);
                       ImageIcon scaledIcon = new ImageIcon(scaledImg);
-
                       pieceButton.setIcon(scaledIcon);
                       pieceButton.setToolTipText(piece.getDisplayName());
                       pieceButton.setMargin(new Insets(0, 0, 0, 0));
@@ -143,14 +141,13 @@ public class BoardPanel extends JPanel {
                       pieceButton.setBorderPainted(true);
                   }
 
-                  if (isMyPanel) {
+                  if (isMyPanel && controller != null) { // 리플레이 시 controller가 null
                       pieceButton.addActionListener(
                           e -> controller.onCapturedPieceClicked(piece, e.getSource())
                       );
                   } else {
                       pieceButton.setEnabled(false);
                   }
-
                   panel.add(pieceButton);
               });
     }
