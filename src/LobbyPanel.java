@@ -9,6 +9,7 @@ public class LobbyPanel extends JPanel {
     private JTextArea chatArea;
     private JTextField chatInputField;
     private JTextField chatInput;
+    private final Color defaultButtonBg = UIManager.getColor("Button.background");
     public LobbyPanel(GameController controller) {
         this.controller = controller;
         this.setLayout(new BorderLayout(10, 10));
@@ -182,12 +183,18 @@ public class LobbyPanel extends JPanel {
                     b.setToolTipText("입장: " + title);
                     b.putClientProperty("roomTitle", title);
                     b.putClientProperty("isPrivate", isPrivate);
+                    if (itemText.contains("[게임중]")) {
+                        b.setBackground(Color.YELLOW);
+                    } else
+                        b.setBackground(Color.GREEN);
+                    
                 } else {
                     b.setText("빈 방");
                     b.setEnabled(false);
                     b.setToolTipText(null);
                     b.putClientProperty("roomTitle", null);
                     b.putClientProperty("isPrivate", false);
+                    b.setBackground(defaultButtonBg);
                 }
             }
         });

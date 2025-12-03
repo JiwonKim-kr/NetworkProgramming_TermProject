@@ -187,7 +187,7 @@ public class BoardPanel extends JPanel {
         int[] viewCoords = modelToView(r, c);
         boardButtons[viewCoords[0]][viewCoords[1]].setBorder(new LineBorder(HIGHLIGHT_SELECTED_PIECE, 2)); 
     }
-    public void highlightSelectedCapturedPiece(Object sourceButton) { ((JButton) sourceButton).setBorder(new LineBorder(HIGHLIGHT_CAPTURED_PIECE, 2)); }
+    public void highlightSelectedCapturedPiece(Object sourceButton) { ((JButton) sourceButton).setBorder(new LineBorder(HIGHLIGHT_CAPTURED_PIECE, 2)); highlightSummonRange();}
 
     public void highlightPlayerPieces(String playerRole) {
         clearHighlights(true);
