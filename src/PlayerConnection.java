@@ -1,7 +1,7 @@
 /**
  * 클라이언트와의 연결을 추상화하는 인터페이스.
  * GameRoom, GameSession 등 게임 로직이 구체적인 네트워크 구현(ClientHandler)에
- * 의존하지 않도록 분리하는 역할을 합니다. (의존 역전 원칙)
+ * 의존하지 않도록 분리하는 역할을 합니다. (DIP)
  */
 public interface PlayerConnection {
     /**
