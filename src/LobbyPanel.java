@@ -34,7 +34,7 @@ public class LobbyPanel extends JPanel {
     }
 
     /**
-     * 로비 채팅 패널을 생성합니다. (현재는 createLobbyChatPanel 메서드에 의해 대체됨)
+     * 로비 채팅 패널을 생성합니다. (createLobbyChatPanel 메서드에 대체됨)
      * @return 생성된 채팅 패널
      */
     private JPanel createChatPanel() {

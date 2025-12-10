@@ -125,9 +125,6 @@ public class RoomPanel extends JPanel {
         // 이 구현은 P1 기준으로 2~4행(인덱스 1~3)을 하이라이트합니다.
         int frontRow = 1;
 
-        if (frontRow == -1)
-            return;
-
         for (int r = frontRow; r <= 3; r++) {
             for (int c = 0; c < 3; c++) {
                 if (isEmptyCell(r, c)) {

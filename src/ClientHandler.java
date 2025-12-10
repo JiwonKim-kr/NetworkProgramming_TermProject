@@ -11,7 +11,7 @@ import java.util.stream.Collectors;
  * PlayerConnection 인터페이스를 구현하여 게임 로직과의 결합도를 낮춥니다.
  */
 public class ClientHandler extends Thread implements PlayerConnection {
-    private Socket clientSocket;
+    private final Socket clientSocket;
     private PrintWriter out;    // 클라이언트로 메시지를 보내기 위한 스트림
     private BufferedReader in; // 클라이언트로부터 메시지를 읽기 위한 스트림
     private String nickname;

@@ -59,4 +59,8 @@ public class ChatPanel extends JPanel {
     public void resetChat() {
         chatArea.setText("");
     }
+
+    public GameController getController() {
+        return controller;
+    }
 }

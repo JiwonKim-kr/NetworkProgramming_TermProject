@@ -9,13 +9,13 @@ import java.util.List;
  */
 public class GameRoom {
 
-    private String title;
+    private final String title;
     private String password;
-    private int maxPlayers;
+    private final int maxPlayers;
     private ClientHandler host;
     private ClientHandler guest;
     // 관전자 목록 (스레드 안전)
-    private List<ClientHandler> spectators = Collections.synchronizedList(new ArrayList<>());
+    private final List<ClientHandler> spectators = Collections.synchronizedList(new ArrayList<>());
     private GameSession currentSession;
     private boolean isPrivate;
 

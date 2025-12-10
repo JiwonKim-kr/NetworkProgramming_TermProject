@@ -154,4 +154,8 @@ public class ReplayPanel extends JPanel {
         prevButton.setEnabled(currentMoveIndex > 0);
         nextButton.setEnabled(currentMoveIndex < moveNotations.size());
     }
+
+    public GameController getController() {
+        return controller;
+    }
 }

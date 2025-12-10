@@ -311,7 +311,7 @@ public class GameSession {
 
         // 모든 정보를 하나의 문자열 페이로드로 합침
         String statePayload = String.format("%s|%s|%s|%s#%s",
-                boardStr.toString(), p1Captured, p2Captured, gameLogic.getCurrentPlayer().name(), moveHistoryStr);
+                boardStr, p1Captured, p2Captured, gameLogic.getCurrentPlayer().name(), moveHistoryStr);
 
         gameRoom.broadcastSystem("UPDATE_STATE " + statePayload);
     }

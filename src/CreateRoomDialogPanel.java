@@ -6,10 +6,10 @@ import java.awt.*;
  * 방 제목, 공개/비공개 여부, 비밀번호, 최대 인원 등을 입력받는 필드를 포함합니다.
  */
 public class CreateRoomDialogPanel extends JPanel {
-    private JTextField roomTitleField;
-    private JRadioButton publicRadio, privateRadio;
-    private JPasswordField passwordField;
-    private JSpinner maxPlayersSpinner;
+    private final JTextField roomTitleField;
+    private final JRadioButton privateRadio;
+    private final JPasswordField passwordField;
+    private final JSpinner maxPlayersSpinner;
 
     /**
      * CreateRoomDialogPanel 생성자입니다.
@@ -35,7 +35,7 @@ public class CreateRoomDialogPanel extends JPanel {
         gbc.gridy = 1;
         gbc.gridwidth = 1;
         add(new JLabel("공개 설정:"), gbc);
-        publicRadio = new JRadioButton("공개", true);
+        JRadioButton publicRadio = new JRadioButton("공개", true);
         privateRadio = new JRadioButton("비공개");
         ButtonGroup group = new ButtonGroup(); // 라디오 버튼 그룹화
         group.add(publicRadio);

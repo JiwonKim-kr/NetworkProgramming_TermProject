@@ -72,18 +72,18 @@ public enum Piece {
      */
     public static Piece flipOwner(Piece piece) {
         if (piece == null) return null;
-        switch (piece) {
-            case P1_KING: return P2_KING;
-            case P1_GENERAL: return P2_GENERAL;
-            case P1_ELEPHANT: return P2_ELEPHANT;
-            case P1_PAWN: return P2_PAWN;
-            case P1_PRINCE: return P2_PRINCE;
-            case P2_KING: return P1_KING;
-            case P2_GENERAL: return P1_GENERAL;
-            case P2_ELEPHANT: return P1_ELEPHANT;
-            case P2_PAWN: return P1_PAWN;
-            case P2_PRINCE: return P1_PRINCE;
-            default: return piece;
-        }
+        return switch (piece) {
+            case P1_KING -> P2_KING;
+            case P1_GENERAL -> P2_GENERAL;
+            case P1_ELEPHANT -> P2_ELEPHANT;
+            case P1_PAWN -> P2_PAWN;
+            case P1_PRINCE -> P2_PRINCE;
+            case P2_KING -> P1_KING;
+            case P2_GENERAL -> P1_GENERAL;
+            case P2_ELEPHANT -> P1_ELEPHANT;
+            case P2_PAWN -> P1_PAWN;
+            case P2_PRINCE -> P1_PRINCE;
+            default -> piece;
+        };
     }
 }
